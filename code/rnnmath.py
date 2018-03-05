@@ -1,5 +1,7 @@
 import numpy as np
 
+# File with helper functions
+
 def sigmoid(x):
 	return 1.0/(1.0 + np.exp(-x))
 
