@@ -1,0 +1,18 @@
+# Natural Language Understanding #
+
+
+### Scope ###
+This repository stores the student solution and lecturer's support code to the coursework for The University of Edinburgh's Natural Langauge Understanding course. The class was taught at the University of Edinburgh in spring 2018 by Adam Lopez.
+
+### Collaborators ###
+* Kristian Boda
+* Vesko Cholakov
+
+### Packages ###
+* Python 3.5
+* Numpy
+* Gensim
+* Pandas
+
+### Who do I talk to? ###
+For more information/enquiries contact one the administrators of the repository.
