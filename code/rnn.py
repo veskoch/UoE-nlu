@@ -299,13 +299,15 @@ class RNN(object):
 		return mean_loss		average loss over all words in D
 		'''
 
-		mean_loss = 0.
+		total_loss = 0.0
+		n_words = 0
 
-		##########################
-		# --- your code here --- #
-		##########################
+		for i in range(len(X)):
+			total_loss += self.compute_loss(X[i], D[i])
+			n_words += len(X[i])
 
-		return mean_loss
+
+		return total_loss / float(n_words)
 
 
 	def train(self, X, D, X_dev, D_dev, epochs=10, learning_rate=0.5, anneal=5, back_steps=0, batch_size=100, min_change=0.0001, log=True):
