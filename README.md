@@ -2,7 +2,7 @@
 
 
 ### Scope ###
-This repository stores the student solution and lecturer's support code to the coursework for The University of Edinburgh's Natural Langauge Understanding course, as taught in the spring of 2018 by Adam Lopez.
+This repository stores the student solution and lecturer's support code to the coursework for The University of Edinburgh's Natural Language Understanding course, as taught in the spring of 2018 by Adam Lopez.
 
 ### Student Collaborators ###
 * Kristian Boda
