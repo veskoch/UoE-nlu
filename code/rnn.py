@@ -90,10 +90,10 @@ class RNN(object):
 			xt = np.zeros((1, self.vocab_size))
 			xt[0][x[t]] = 1
 
-			st = sigmoid(self.V.dot(xt.T) + np.expand_dims(self.U.dot(s[t, :].T), axis=1))
+			st = sigmoid(self.V.dot(xt.T) + np.expand_dims(self.U.dot(s[t-1, :].T), axis=1))
 			yt = softmax(self.W.dot(st))
 
-			s[t + 1, :] = st.T[0]
+			s[t, :] = st.T[0]
 			y[t, :] = yt.T[0]
 
 
@@ -204,13 +204,18 @@ class RNN(object):
 		return loss		the combined loss for all words
 		'''
 
-		loss = 0.
 
 		##########################
 		# --- your code here --- #
 		##########################
 
-		return loss
+		d_hot = np.zeros((len(d), self.vocab_size))
+		d_hot[np.linspace(0, len(d) - 1, len(d), dtype=int), d] = 1
+
+		y_hat = self.predict(x)
+		J = - np.sum(np.multiply(np.log(y_hat[0]), d_hot))
+
+		return J
 
 
 	def compute_loss_np(self, x, d):
