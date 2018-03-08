@@ -173,11 +173,28 @@ class RNN(object):
 
 		no return values
 		'''
-        # for t in reversed(range(len(x))):
-        # print("time {0}".format(t))
-        ##########################
-        # --- your code here --- #
-        ##########################
+        for t in reversed(range(len(x))):
+            d_hot = make_onehot(d[t], self.vocab_size)
+            x_hot = make_onehot(x[t], self.vocab_size)
+            l = d_hot - y[t]
+            g_d = np.ones(self.vocab_size)
+            d_out = np.multiply(l, g_d)
+            self.deltaW += np.outer(d_out, s[t])
+
+            # Initialize recursive
+            f_d_step = s[t] * (np.ones(self.vocab_size - 1) - s[t])
+            d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
+            self.deltaV += np.outer(d_in_step, x_hot)
+            self.deltaU += np.outer(d_in_step, s[t - 1])
+
+            steps_generator = (i for i in range(steps) if t - i >= 0)
+            for step in steps_generator:
+                x_hot_step = make_onehot(x[t - step - 1], self.vocab_size)
+                f_d_step = s[t - step - 1] * (np.ones(self.vocab_size - 1) - s[t - step - 1])
+                d_in_step = np.multiply(np.dot(self.U.T, d_in_step), f_d_step)
+
+                self.deltaV += np.outer(d_in_step, x_hot_step)
+                self.deltaU += np.outer(d_in_step, s[t - step - 2])
 
     def acc_deltas_bptt_np(self, x, d, y, s, steps):
         '''
