@@ -128,7 +128,7 @@ class RNN(object):
             d_out = np.multiply(l, g_d)
             self.deltaW += np.outer(d_out, s[t])
 
-            f_d = s[t] * (np.ones(self.vocab_size - 1) - s[t])
+            f_d = s[t] * (np.ones(1) - s[t])
             d_in = np.multiply(np.dot(self.W.T, d_out), f_d)
             self.deltaV += np.outer(d_in, x_hot)
 
@@ -182,7 +182,7 @@ class RNN(object):
             self.deltaW += np.outer(d_out, s[t])
 
             # Initialize recursive
-            f_d_step = s[t] * (np.ones(self.vocab_size - 1) - s[t])
+            f_d_step = s[t] * (np.ones(1) - s[t])
             d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
             self.deltaV += np.outer(d_in_step, x_hot)
             self.deltaU += np.outer(d_in_step, s[t - 1])
@@ -190,7 +190,7 @@ class RNN(object):
             steps_generator = (i for i in range(steps) if t - i >= 0)
             for step in steps_generator:
                 x_hot_step = make_onehot(x[t - step - 1], self.vocab_size)
-                f_d_step = s[t - step - 1] * (np.ones(self.vocab_size - 1) - s[t - step - 1])
+                f_d_step = s[t - step - 1] * (np.ones(1) - s[t - step - 1])
                 d_in_step = np.multiply(np.dot(self.U.T, d_in_step), f_d_step)
 
                 self.deltaV += np.outer(d_in_step, x_hot_step)
@@ -677,7 +677,7 @@ if __name__ == "__main__":
 
     mode = sys.argv[1].lower()
     data_folder = sys.argv[2]
-    np.random.seed(2018)
+    np.random.seed(42)
 
     if mode == "train-lm":
         '''
@@ -729,7 +729,7 @@ if __name__ == "__main__":
         ##########################
         # --- your code here --- #
         ##########################
-
+        
         run_loss = -1
         adjusted_loss = -1
 
