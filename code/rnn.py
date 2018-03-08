@@ -82,7 +82,8 @@ class RNN(object):
 
 		# matrix s for hidden states, y for output states, given input x.
 		# rows correspond to times t, i.e., input words
-		# s has one more row, since we need to look back even at time 0 (s(t=0-1) will just be [0. 0. ....] )
+
+		# s has one more row, since we look back even at time 0
 		s = np.zeros((len(x) + 1, self.hidden_dims))
 		y = np.zeros((len(x), self.out_vocab_size))
 
@@ -116,10 +117,22 @@ class RNN(object):
 		no return values
 		'''
 
-		# for t in reversed(range(len(x))):
-			##########################
-			# --- your code here --- #
-			##########################
+		# ##########################
+		# # --- your code here --- #
+		# ##########################
+		for t in reversed(range(len(x))):
+			d_hot = np.zeros(self.vocab_size)
+			d_hot[d[t]] = 1
+			x_hot = np.zeros(self.vocab_size)
+			x_hot[x[t]] = 1
+
+			delta_out = d_hot - y[t]
+			delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
+
+			self.deltaW += np.outer(delta_out, s[t])
+			self.deltaV += np.outer(delta_in, x_hot)
+			self.deltaU += np.outer(delta_in, s[t-1])
+
 
 	def acc_deltas_np(self, x, d, y, s):
 		'''
@@ -139,9 +152,9 @@ class RNN(object):
 		no return values
 		'''
 
-		##########################
-		# --- your code here --- #
-		##########################
+	##########################
+	# --- your code here --- #
+	##########################
 
 
 	def acc_deltas_bptt(self, x, d, y, s, steps):
@@ -161,11 +174,40 @@ class RNN(object):
 
 		no return values
 		'''
-		# for t in reversed(range(len(x))):
-			# print("time {0}".format(t))
-			##########################
-			# --- your code here --- #
-			##########################
+
+		##########################
+		# --- your code here --- #
+		##########################
+
+		for t in reversed(range(len(x))):
+			d_hot = np.zeros(self.vocab_size)
+			d_hot[d[t]] = 1
+			x_hot = np.zeros(self.vocab_size)
+			x_hot[x[t]] = 1
+
+			delta_out = d_hot - y[t]
+			delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
+
+			self.deltaW += np.outer(delta_out, s[t])
+			self.deltaV += np.outer(delta_in, x_hot)
+			self.deltaU += np.outer(delta_in, s[t - 1])
+
+			delta_in_prev = delta_in
+
+			for tau in range(1, steps + 1):
+				x_hot = np.zeros(self.vocab_size)
+				x_hot[x[t-tau]] = 1
+
+				delta_in = self.U.T.dot(delta_in_prev) * s[t-tau] * (np.ones(self.hidden_dims) - s[t-tau])
+
+				self.deltaV += np.outer(delta_in, x_hot)
+				self.deltaU += np.outer(delta_in, s[t-tau-1])
+
+				delta_in_prev = delta_in
+
+
+		# print("time {0}".format(t))
+
 
 
 	def acc_deltas_bptt_np(self, x, d, y, s, steps):
@@ -187,9 +229,9 @@ class RNN(object):
 		no return values
 		'''
 
-		##########################
-		# --- your code here --- #
-		##########################
+	##########################
+	# --- your code here --- #
+	##########################
 
 
 	def compute_loss(self, x, d):
