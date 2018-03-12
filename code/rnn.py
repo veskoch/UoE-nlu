@@ -128,7 +128,7 @@ class RNN(object):
             d_out = np.multiply(l, g_d)
             self.deltaW += np.outer(d_out, s[t])
 
-            f_d = s[t] * (np.ones(1) - s[t])
+            f_d = s[t] * (np.ones(self.hidden_dims) - s[t])
             d_in = np.multiply(np.dot(self.W.T, d_out), f_d)
             self.deltaV += np.outer(d_in, x_hot)
 
@@ -152,9 +152,19 @@ class RNN(object):
 		no return values
 		'''
 
-        ##########################
-        # --- your code here --- #
-        ##########################
+        t = len(x[:-1])
+        d_hot = make_onehot(d, self.vocab_size)
+        x_hot = make_onehot(x[t], self.vocab_size)
+        l = d_hot - y[t]
+        g_d = np.ones(self.vocab_size)
+        d_out = np.multiply(l, g_d)
+        self.deltaW += np.outer(d_out, s[t])
+
+        f_d = s[t] * (np.ones(self.hidden_dims) - s[t])
+        d_in = np.multiply(np.dot(self.W.T, d_out), f_d)
+        self.deltaV += np.outer(d_in, x_hot)
+
+        self.deltaU += np.outer(d_in, s[t - 1])
 
     def acc_deltas_bptt(self, x, d, y, s, steps):
         '''
@@ -182,7 +192,7 @@ class RNN(object):
             self.deltaW += np.outer(d_out, s[t])
 
             # Initialize recursive
-            f_d_step = s[t] * (np.ones(1) - s[t])
+            f_d_step = s[t] * (np.ones(self.hidden_dims) - s[t])
             d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
             self.deltaV += np.outer(d_in_step, x_hot)
             self.deltaU += np.outer(d_in_step, s[t - 1])
@@ -215,9 +225,28 @@ class RNN(object):
 		no return values
 		'''
 
-        ##########################
-        # --- your code here --- #
-        ##########################
+        t = len(x[:-1])
+        d_hot = make_onehot(d, self.vocab_size)
+        x_hot = make_onehot(x[t], self.vocab_size)
+        l = d_hot - y[t]
+        g_d = np.ones(self.vocab_size)
+        d_out = np.multiply(l, g_d)
+        self.deltaW += np.outer(d_out, s[t])
+
+        # Initialize recursive
+        f_d_step = s[t] * (np.ones(self.hidden_dims) - s[t])
+        d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
+        self.deltaV += np.outer(d_in_step, x_hot)
+        self.deltaU += np.outer(d_in_step, s[t - 1])
+
+        steps_generator = (i for i in range(steps) if t - i >= 0)
+        for step in steps_generator:
+            x_hot_step = make_onehot(x[t - step - 1], self.vocab_size)
+            f_d_step = s[t - step - 1] * (np.ones(1) - s[t - step - 1])
+            d_in_step = np.multiply(np.dot(self.U.T, d_in_step), f_d_step)
+
+            self.deltaV += np.outer(d_in_step, x_hot_step)
+            self.deltaU += np.outer(d_in_step, s[t - step - 2])
 
     def compute_loss(self, x, d):
         '''
@@ -230,6 +259,7 @@ class RNN(object):
 
 		return loss		the combined loss for all words
 		'''
+        J = 0.
 
         d_hot = np.zeros((len(d), self.vocab_size))
         d_hot[np.linspace(0, len(d) - 1, len(d), dtype=int), d] = 1
@@ -251,13 +281,14 @@ class RNN(object):
 		return loss		we only take the prediction from the last time step
 		'''
 
-        loss = 0.
+        J = 0.
 
-        ##########################
-        # --- your code here --- #
-        ##########################
+        t = len(x[:-1])
+        d_hot = make_onehot(d, self.vocab_size)
 
-        return loss
+        y_hat, s = self.predict(x)
+        J = -np.sum(np.multiply(np.log(y_hat[t]), d_hot))
+        return J
 
     def compute_acc_np(self, x, d):
         '''
@@ -270,11 +301,9 @@ class RNN(object):
 		return 1 if argmax(y[t]) == d[0], 0 otherwise
 		'''
 
-        ##########################
-        # --- your code here --- #
-        ##########################
-
-        return 0
+        t = len(x[:-1])
+        y_hat, s = self.predict(x)
+        return 1 if np.argmax(y_hat[t]) == d[0] else 0
 
     def compare_num_pred(self, x, d):
         '''
@@ -287,11 +316,9 @@ class RNN(object):
 		return 1 if p(d[0]) > p(d[1]), 0 otherwise
 		'''
 
-        ##########################
-        # --- your code here --- #
-        ##########################
-
-        return 0
+        y_hat, s = self.predict(x)
+        p = np.sum(y_hat, axis = 0)
+        return 1 if p[d[0]] > p[d[1]] else 0
 
     def compute_acc_lmnp(self, X_dev, D_dev):
         '''
