@@ -87,15 +87,13 @@ class RNN(object):
 		s = np.zeros((len(x) + 1, self.hidden_dims))
 		y = np.zeros((len(x), self.out_vocab_size))
 
+
 		for t in range(len(x)):
 			xt = np.zeros((1, self.vocab_size))
 			xt[0][x[t]] = 1
 
-			st = sigmoid(self.V.dot(xt.T) + np.expand_dims(self.U.dot(s[t-1, :].T), axis=1))
-			yt = softmax(self.W.dot(st))
-
-			s[t, :] = st.T[0]
-			y[t, :] = yt.T[0]
+			s[t] = sigmoid(self.V.dot(xt.T) + np.expand_dims(self.U.dot(s[t-1, :].T), axis=1)).T
+			y[t] = softmax(self.W.dot(s[t])).T
 
 
 		return y, s
@@ -133,7 +131,6 @@ class RNN(object):
 			self.deltaV += np.outer(delta_in, x_hot)
 			self.deltaU += np.outer(delta_in, s[t-1])
 
-
 	def acc_deltas_np(self, x, d, y, s):
 		'''
 		accumulate updates for V, W, U
@@ -152,10 +149,22 @@ class RNN(object):
 		no return values
 		'''
 
-	##########################
-	# --- your code here --- #
-	##########################
+		##########################
+		# --- your code here --- #
+		##########################
 
+		t = len(x) - 1
+		x_hot = np.zeros(self.vocab_size)
+		x_hot[x[t]] = 1
+		d_hot = np.zeros(self.vocab_size)
+		d_hot[d[0]] = 1
+
+		delta_out = d_hot - y[t]
+		delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
+
+		self.deltaW += np.outer(delta_out, s[t])
+		self.deltaV += np.outer(delta_in, x_hot)
+		self.deltaU += np.outer(delta_in, s[t - 1])
 
 	def acc_deltas_bptt(self, x, d, y, s, steps):
 		'''
@@ -195,20 +204,16 @@ class RNN(object):
 			delta_in_prev = delta_in
 
 			for tau in range(1, steps + 1):
-				x_hot = np.zeros(self.vocab_size)
-				x_hot[x[t-tau]] = 1
+				if t >= tau:
+					x_hot = np.zeros(self.vocab_size)
+					x_hot[x[t-tau]] = 1
 
-				delta_in = self.U.T.dot(delta_in_prev) * s[t-tau] * (np.ones(self.hidden_dims) - s[t-tau])
+					delta_in = self.U.T.dot(delta_in_prev) * s[t-tau] * (np.ones(self.hidden_dims) - s[t-tau])
 
-				self.deltaV += np.outer(delta_in, x_hot)
-				self.deltaU += np.outer(delta_in, s[t-tau-1])
+					self.deltaV += np.outer(delta_in, x_hot)
+					self.deltaU += np.outer(delta_in, s[t-tau-1])
 
-				delta_in_prev = delta_in
-
-
-		# print("time {0}".format(t))
-
-
+					delta_in_prev = delta_in
 
 	def acc_deltas_bptt_np(self, x, d, y, s, steps):
 		'''
@@ -229,9 +234,36 @@ class RNN(object):
 		no return values
 		'''
 
-	##########################
-	# --- your code here --- #
-	##########################
+		##########################
+		# --- your code here --- #
+		##########################
+
+		t = len(x) - 1
+		d_hot = np.zeros(self.vocab_size)
+		d_hot[d[0]] = 1
+		x_hot = np.zeros(self.vocab_size)
+		x_hot[x[t]] = 1
+
+		delta_out = d_hot - y[t]
+		delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
+
+		self.deltaW += np.outer(delta_out, s[t])
+		self.deltaV += np.outer(delta_in, x_hot)
+		self.deltaU += np.outer(delta_in, s[t - 1])
+
+		delta_in_prev = delta_in
+
+		for tau in range(1, steps + 1):
+			if t >= tau:
+				x_hot = np.zeros(self.vocab_size)
+				x_hot[x[t - tau]] = 1
+
+				delta_in = self.U.T.dot(delta_in_prev) * s[t - tau] * (np.ones(self.hidden_dims) - s[t - tau])
+
+				self.deltaV += np.outer(delta_in, x_hot)
+				self.deltaU += np.outer(delta_in, s[t - tau - 1])
+
+				delta_in_prev = delta_in
 
 
 	def compute_loss(self, x, d):
@@ -246,18 +278,16 @@ class RNN(object):
 		return loss		the combined loss for all words
 		'''
 
-
 		##########################
 		# --- your code here --- #
 		##########################
 
 		d_hot = np.zeros((len(d), self.vocab_size))
-		d_hot[np.linspace(0, len(d) - 1, len(d), dtype=int), d] = 1
+		d_hot[range(len(d)), d] = 1
 
 		y_hat = self.predict(x)
-		J = - np.sum(np.multiply(np.log(y_hat[0]), d_hot))
 
-		return J
+		return - np.sum(d_hot * np.log(y_hat[0]))
 
 
 	def compute_loss_np(self, x, d):
@@ -272,13 +302,17 @@ class RNN(object):
 		return loss		we only take the prediction from the last time step
 		'''
 
-		loss = 0.
 
 		##########################
 		# --- your code here --- #
 		##########################
 
-		return loss
+		d_hot = np.zeros(self.vocab_size)
+		d_hot[d[0]] = 1
+
+		y_hat = self.predict(x)
+
+		return - np.sum(d_hot * np.log(y_hat[0][-1]))
 
 
 	def compute_acc_np(self, x, d):
@@ -293,11 +327,11 @@ class RNN(object):
 		'''
 
 
-		##########################
-		# --- your code here --- #
-		##########################
-
-		return 0
+		y = self.predict(x)
+		if np.argmax(y[0][-1]) == d[0]:
+			return 1
+		else:
+			return 0
 
 
 	def compare_num_pred(self, x, d):
@@ -637,7 +671,7 @@ class RNN(object):
 
 
 if __name__ == "__main__":
-
+	# python rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 25 0 0.5
 	mode = sys.argv[1].lower()
 	data_folder = sys.argv[2]
 	np.random.seed(2018)
@@ -646,8 +680,11 @@ if __name__ == "__main__":
 		'''
 		code for training language model.
 		change this to different values, or use it to get you started with your own testing class
+		
+		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 50 2 0.5
+		
 		'''
-		train_size = 1000
+		train_size = 25000
 		dev_size = 1000
 		vocab_size = 2000
 
@@ -686,17 +723,51 @@ if __name__ == "__main__":
 		# --- your code here --- #
 		##########################
 
-		run_loss = -1
-		adjusted_loss = -1
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		best_loss = my_rnn.train(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback)
 
-		print("Unadjusted: %.03f" % np.exp(run_loss))
+		adjusted_loss = adjust_loss(best_loss, fraction_lost, q)
+
+
+		print("Unadjusted: %.03f" % np.exp(best_loss))
 		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+		np.save(data_folder + "/rnn.U.npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V.npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W.npy", my_rnn.W)
+
+		print("Saved final learned matrices U, V and W to disk.")
+
+
+		print('\nEVALUATION ON FULL DEV SET:')
+		X_dev, D_dev = seqs_to_lmXY(S_dev)
+		mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+		adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+		print("Mean loss: {}".format(mean_loss))
+		print("Unadjusted: %.03f" % np.exp(mean_loss))
+		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+		print('\nEVALUATION ON FULL TEST SET:')
+		docs = load_lm_dataset(data_folder + '/wiki-test.txt')
+		S_dev = docs_to_indices(docs, word_to_num, 1, 1)
+		X_dev, D_dev = seqs_to_lmXY(S_dev)
+		mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+		adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+		print("Mean loss: {}".format(mean_loss))
+		print("Unadjusted: %.03f" % np.exp(mean_loss))
+		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+		##################################
+		# --- student code ends here --- #
+		##################################
 
 
 	if mode == "train-np":
 		'''
 		starter code for parameter estimation.
 		change this to different values, or use it to get you started with your own testing class
+		
+		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-np /Users/vesko/GitHub/UoE-nlu/data 50 2 0.5
 		'''
 		train_size = 1000
 		dev_size = 1000
@@ -740,14 +811,14 @@ if __name__ == "__main__":
 
 		print("Accuracy: %.03f" % acc)
 
-
 	if mode == "predict-lm":
 
 		data_folder = sys.argv[2]
 		rnn_folder = sys.argv[3]
 
 		# get saved RNN matrices and setup RNN
-		U,V,W = np.load(rnn_folder + "/rnn.U.npy"), np.load(rnn_folder + "/rnn.V.npy"), np.load(rnn_folder + "/rnn.W.npy")
+		U, V, W = np.load(rnn_folder + "/rnn.U.npy"), np.load(rnn_folder + "/rnn.V.npy"), np.load(
+			rnn_folder + "/rnn.W.npy")
 		vocab_size = len(V[0])
 		hdim = len(U[0])
 
@@ -759,7 +830,8 @@ if __name__ == "__main__":
 		r.W = W
 
 		# get vocabulary
-		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0,
+							  names=['count', 'freq'], )
 		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
 		word_to_num = invert_dict(num_to_word)
 
