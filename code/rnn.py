@@ -345,11 +345,20 @@ class RNN(object):
 		return 1 if p(d[0]) > p(d[1]), 0 otherwise
 		'''
 
-		##########################
-		# --- your code here --- #
-		##########################
+		##############################
+		# --- student code below --- #
+		##############################
 
-		return 0
+		# d[0] desired output
+		# d[1] (re)inflected form
+
+		y = self.predict(x)[0]
+
+		if y[-1][d[0]] > y[-1][d[1]]:
+			return 1
+		else:
+			return 0
+
 
 
 	def compute_acc_lmnp(self, X_dev, D_dev):
