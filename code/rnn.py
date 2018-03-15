@@ -684,7 +684,7 @@ if __name__ == "__main__":
 		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 50 2 0.5
 		
 		'''
-		train_size = 25000
+		train_size = 1000
 		dev_size = 1000
 		vocab_size = 2000
 
@@ -732,11 +732,11 @@ if __name__ == "__main__":
 		print("Unadjusted: %.03f" % np.exp(best_loss))
 		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
-		np.save(data_folder + "/rnn.U.npy", my_rnn.U)
-		np.save(data_folder + "/rnn.V.npy", my_rnn.V)
-		np.save(data_folder + "/rnn.W.npy", my_rnn.W)
-
-		print("Saved final learned matrices U, V and W to disk.")
+		# np.save(data_folder + "/rnn.U.npy", my_rnn.U)
+		# np.save(data_folder + "/rnn.V.npy", my_rnn.V)
+		# np.save(data_folder + "/rnn.W.npy", my_rnn.W)
+		#
+		# print("Saved final learned matrices U, V and W to disk.")
 
 
 		print('\nEVALUATION ON FULL DEV SET:')
@@ -747,15 +747,15 @@ if __name__ == "__main__":
 		print("Unadjusted: %.03f" % np.exp(mean_loss))
 		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
-		print('\nEVALUATION ON FULL TEST SET:')
-		docs = load_lm_dataset(data_folder + '/wiki-test.txt')
-		S_dev = docs_to_indices(docs, word_to_num, 1, 1)
-		X_dev, D_dev = seqs_to_lmXY(S_dev)
-		mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
-		adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
-		print("Mean loss: {}".format(mean_loss))
-		print("Unadjusted: %.03f" % np.exp(mean_loss))
-		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+		# print('\nEVALUATION ON FULL TEST SET:')
+		# docs = load_lm_dataset(data_folder + '/wiki-test.txt')
+		# S_dev = docs_to_indices(docs, word_to_num, 1, 1)
+		# X_dev, D_dev = seqs_to_lmXY(S_dev)
+		# mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+		# adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+		# print("Mean loss: {}".format(mean_loss))
+		# print("Unadjusted: %.03f" % np.exp(mean_loss))
+		# print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
 		##################################
 		# --- student code ends here --- #
@@ -803,13 +803,12 @@ if __name__ == "__main__":
 		D_dev = D_dev[:dev_size]
 
 
-		##########################
-		# --- your code here --- #
-		##########################
+		##############################
+		# --- student code below --- #
+		##############################
 
-		acc = 0.
-
-		print("Accuracy: %.03f" % acc)
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback)
 
 	if mode == "predict-lm":
 

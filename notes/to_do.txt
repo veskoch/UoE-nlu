@@ -1,0 +1,7 @@
+Jobs to run:
+
+* Q3(b) exploration
+* Q2(a) more exploration
+
+* Q2(b) run for 25 epochs | 1. uncomment save U,V,W | 2. set size to 25000
+* Q3(b) run best on 25000 samples
