@@ -360,7 +360,6 @@ class RNN(object):
 			return 0
 
 
-
 	def compute_acc_lmnp(self, X_dev, D_dev):
 		'''
 
@@ -690,10 +689,10 @@ if __name__ == "__main__":
 		code for training language model.
 		change this to different values, or use it to get you started with your own testing class
 		
-		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 50 2 0.5
+		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 50 2 1.5
 		
 		'''
-		train_size = 1000
+		train_size = 25000
 		dev_size = 1000
 		vocab_size = 2000
 
@@ -741,11 +740,11 @@ if __name__ == "__main__":
 		print("Unadjusted: %.03f" % np.exp(best_loss))
 		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
-		# np.save(data_folder + "/rnn.U.npy", my_rnn.U)
-		# np.save(data_folder + "/rnn.V.npy", my_rnn.V)
-		# np.save(data_folder + "/rnn.W.npy", my_rnn.W)
-		#
-		# print("Saved final learned matrices U, V and W to disk.")
+		np.save(data_folder + "/rnn.U.npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V.npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W.npy", my_rnn.W)
+
+		print("Saved final learned matrices U, V and W to disk.")
 
 
 		print('\nEVALUATION ON FULL DEV SET:')
@@ -820,6 +819,9 @@ if __name__ == "__main__":
 		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback)
 
 	if mode == "predict-lm":
+
+		# python
+		# /Users/vesko/GitHub/UoE-nlu/code/rnn.py predict-lm /Users/vesko/GitHub/UoE-nlu/data /Users/vesko/GitHub/UoE-nlu/Q2
 
 		data_folder = sys.argv[2]
 		rnn_folder = sys.argv[3]
