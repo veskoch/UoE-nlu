@@ -1,0 +1,17 @@
+Jobs to run:
+
+Q2(a) and Q3(b) 
+** Exploration Q2 and Q3 **
+* Q2(a) more exploration
+* Q3(b) exploration
+
+
+** Run Best Q2 and Q3 **
+* Q2(b) run for 25 epochs | REMEMBER TO 1. uncomment to save U,V,W | 2. train_size = 25000
+* Q3(b) run best on 25000 samples
+
+* Q4(a) evaluate, with best weights from Q2(b)
+
+
+– Use POT tagging
+– Train on harder cases
