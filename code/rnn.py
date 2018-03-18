@@ -85,7 +85,7 @@ class RNN(object):
 
         # matrix s for hidden states, y for output states, given input x.
         # rows correspond to times t, i.e., input words
-        # s has one more row, since we need to look back even at time 0 (s(t=0-1) will just be [0. 0. ....] )
+        # s has one more row, since we look back even at time 0
         s = np.zeros((len(x) + 1, self.hidden_dims))
         y = np.zeros((len(x), self.out_vocab_size))
 
@@ -522,7 +522,7 @@ class RNN(object):
                  D,
                  X_dev,
                  D_dev,
-                 epochs=10,
+                 epochs=20,
                  learning_rate=0.5,
                  anneal=5,
                  back_steps=0,
@@ -798,7 +798,7 @@ if __name__ == "__main__":
 		starter code for parameter estimation.
 		change this to different values, or use it to get you started with your own testing class
 		'''
-        train_size = 1000
+        train_size = 10000
         dev_size = 1000
         vocab_size = 2000
 
@@ -824,6 +824,7 @@ if __name__ == "__main__":
 
         # load training data
         sents = load_np_dataset(data_folder + '/wiki-train.txt')
+        print(len(sents))
         S_train = docs_to_indices(sents, word_to_num, 0, 0)
         X_train, D_train = seqs_to_npXY(S_train)
 
