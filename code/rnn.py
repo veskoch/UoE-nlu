@@ -93,13 +93,10 @@ class RNN(object):
             xt = np.zeros((1, self.vocab_size))
             xt[0][x[t]] = 1
 
-            st = sigmoid(
+            s[t] = sigmoid(
                 self.V.dot(xt.T) +
-                np.expand_dims(self.U.dot(s[t - 1, :].T), axis=1))
-            yt = softmax(self.W.dot(st))
-
-            s[t, :] = st.T[0]
-            y[t, :] = yt.T[0]
+                np.expand_dims(self.U.dot(s[t - 1, :].T), axis=1)).T
+            y[t] = softmax(self.W.dot(s[t])).T
 
         return y, s
 
@@ -123,9 +120,9 @@ class RNN(object):
         for t in reversed(range(len(x))):
             d_hot = make_onehot(d[t], self.vocab_size)
             x_hot = make_onehot(x[t], self.vocab_size)
-            l = d_hot - y[t]
-            g_d = np.ones(self.vocab_size)
-            d_out = np.multiply(l, g_d)
+            # g_d = np.ones(self.vocab_size) always 1
+            # d_out = np.multiply(d_out, g_d)
+            d_out = d_hot - y[t]
             self.deltaW += np.outer(d_out, s[t])
 
             f_d = s[t] * (np.ones(self.hidden_dims) - s[t])
@@ -226,7 +223,7 @@ class RNN(object):
 		'''
 
         t = len(x[:-1])
-        d_hot = make_onehot(d, self.vocab_size)
+        d_hot = make_onehot(d[0], self.vocab_size)
         x_hot = make_onehot(x[t], self.vocab_size)
         l = d_hot - y[t]
         g_d = np.ones(self.vocab_size)
@@ -259,15 +256,13 @@ class RNN(object):
 
 		return loss		the combined loss for all words
 		'''
-        J = 0.
 
         d_hot = np.zeros((len(d), self.vocab_size))
-        d_hot[np.linspace(0, len(d) - 1, len(d), dtype=int), d] = 1
+        d_hot[range(len(d)), d] = 1
 
         y_hat = self.predict(x)
-        J = -np.sum(np.multiply(np.log(y_hat[0]), d_hot))
 
-        return J
+        return -np.sum(d_hot * np.log(y_hat[0]))
 
     def compute_loss_np(self, x, d):
         '''
@@ -284,11 +279,10 @@ class RNN(object):
         J = 0.
 
         t = len(x[:-1])
-        d_hot = make_onehot(d, self.vocab_size)
+        d_hot = make_onehot(d[0], self.vocab_size)
 
         y_hat, s = self.predict(x)
-        J = -np.sum(np.multiply(np.log(y_hat[t]), d_hot))
-        return J
+        return -np.sum(d_hot * np.log(y_hat[-1]))
 
     def compute_acc_np(self, x, d):
         '''
@@ -449,13 +443,15 @@ class RNN(object):
             # use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
             permutation = np.random.permutation(range(len(X)))
             if log:
-                stdout.write("\tinstance 1")
+                #stdout.write("\tinstance 1")
+                pass
             for i in range(len(X)):
                 c = i + 1
                 if log:
-                    stdout.write("\b" * len(str(i)))
-                    stdout.write("{0}".format(c))
-                    stdout.flush()
+                    #stdout.write("\b" * len(str(i)))
+                    #stdout.write("{0}".format(c))
+                    #stdout.flush()
+                    pass
                 p = permutation[i]
                 x_p = X[p]
                 d_p = D[p]
@@ -621,13 +617,15 @@ class RNN(object):
             # use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
             permutation = np.random.permutation(range(len(X)))
             if log:
-                stdout.write("\tinstance 1")
+                #stdout.write("\tinstance 1")
+                pass
             for i in range(len(X)):
                 c = i + 1
                 if log:
-                    stdout.write("\b" * len(str(i)))
-                    stdout.write("{0}".format(c))
-                    stdout.flush()
+                    #stdout.write("\b" * len(str(i)))
+                    #stdout.write("{0}".format(c))
+                    #stdout.flush()
+                    pass
                 p = permutation[i]
                 x_p = X[p]
                 d_p = D[p]
@@ -753,15 +751,47 @@ if __name__ == "__main__":
         # this is the best expected loss out of that set
         q = vocab.freq[vocab_size] / sum(vocab.freq[vocab_size:])
 
-        ##########################
-        # --- your code here --- #
-        ##########################
-        
-        run_loss = -1
-        adjusted_loss = -1
+        my_rnn = RNN(vocab_size, hdim, vocab_size)
+        best_loss = my_rnn.train(
+            X_train,
+            D_train,
+            X_dev,
+            D_dev,
+            learning_rate=lr,
+            back_steps=lookback)
 
-        print("Unadjusted: %.03f" % np.exp(run_loss))
+        adjusted_loss = adjust_loss(best_loss, fraction_lost, q)
+
+        print("Unadjusted: %.03f" % np.exp(best_loss))
         print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+        np.save(data_folder + "/rnn.U.npy", my_rnn.U)
+        np.save(data_folder + "/rnn.V.npy", my_rnn.V)
+        np.save(data_folder + "/rnn.W.npy", my_rnn.W)
+
+        print("Saved final learned matrices U, V and W to disk.")
+
+        print('\nEVALUATION ON FULL DEV SET:')
+        X_dev, D_dev = seqs_to_lmXY(S_dev)
+        mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+        adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+        print("Mean loss: {}".format(mean_loss))
+        print("Unadjusted: %.03f" % np.exp(mean_loss))
+        print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+        # print('\nEVALUATION ON FULL TEST SET:')
+        # docs = load_lm_dataset(data_folder + '/wiki-test.txt')
+        # S_dev = docs_to_indices(docs, word_to_num, 1, 1)
+        # X_dev, D_dev = seqs_to_lmXY(S_dev)
+        # mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+        # adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+        # print("Mean loss: {}".format(mean_loss))
+        # print("Unadjusted: %.03f" % np.exp(mean_loss))
+        # print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+        ##################################
+        # --- student code ends here --- #
+        ##################################
 
     if mode == "train-np":
         '''
@@ -812,9 +842,14 @@ if __name__ == "__main__":
         # --- your code here --- #
         ##########################
 
-        acc = 0.
-
-        print("Accuracy: %.03f" % acc)
+        my_rnn = RNN(vocab_size, hdim, vocab_size)
+        my_rnn.train_np(
+            X_train,
+            D_train,
+            X_dev,
+            D_dev,
+            learning_rate=lr,
+            back_steps=lookback)
 
     if mode == "predict-lm":
 
