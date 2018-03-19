@@ -265,7 +265,6 @@ class RNN(object):
 
 				delta_in_prev = delta_in
 
-
 	def compute_loss(self, x, d):
 		'''
 		compute the loss between predictions y for x, and desired output d.
@@ -562,7 +561,7 @@ class RNN(object):
 						default 0.0001
 		log				whether or not to print out log messages. (default log=True)
 		'''
-		if log:
+		if log or not log:
 			stdout.write("\nTraining model for {0} epochs\ntraining set: {1} sentences (batch size {2})".format(epochs, len(X), batch_size))
 			stdout.write("\nOptimizing loss on {0} sentences".format(len(X_dev)))
 			stdout.write("\nVocab size: {0}\nHidden units: {1}".format(self.vocab_size, self.hidden_dims))
@@ -600,7 +599,7 @@ class RNN(object):
 			else:
 				learning_rate = a0
 
-			if log:
+			if log or not log:
 				stdout.write("\nepoch %d, learning rate %.04f" % (epoch+1, learning_rate))
 				stdout.flush()
 
@@ -609,7 +608,7 @@ class RNN(object):
 
 			# use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
 			permutation = np.random.permutation(range(len(X)))
-			if log:
+			if log or not log:
 				stdout.write("\tinstance 1")
 			for i in range(len(X)):
 				c = i+1
@@ -643,7 +642,7 @@ class RNN(object):
 			loss = sum([loss_function(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / loss_sum
 			acc = sum([self.compute_acc_np(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / len(X_dev)
 
-			if log:
+			if log or not log:
 				stdout.write("\tepoch done in %.02f seconds" % (time.time() - t0))
 				stdout.write("\tnew loss: {0}".format(loss))
 				stdout.write("\tnew acc: {0}".format(acc))
@@ -755,19 +754,6 @@ if __name__ == "__main__":
 		print("Unadjusted: %.03f" % np.exp(mean_loss))
 		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
-		# print('\nEVALUATION ON FULL TEST SET:')
-		# docs = load_lm_dataset(data_folder + '/wiki-test.txt')
-		# S_dev = docs_to_indices(docs, word_to_num, 1, 1)
-		# X_dev, D_dev = seqs_to_lmXY(S_dev)
-		# mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
-		# adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
-		# print("Mean loss: {}".format(mean_loss))
-		# print("Unadjusted: %.03f" % np.exp(mean_loss))
-		# print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
-
-		##################################
-		# --- student code ends here --- #
-		##################################
 
 
 	if mode == "train-np":
@@ -776,8 +762,10 @@ if __name__ == "__main__":
 		change this to different values, or use it to get you started with your own testing class
 		
 		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-np /Users/vesko/GitHub/UoE-nlu/data 50 2 0.5
+		# train-np ../data 50 2 0.5
+		
 		'''
-		train_size = 1000
+		train_size = 25000
 		dev_size = 1000
 		vocab_size = 2000
 
@@ -816,7 +804,12 @@ if __name__ == "__main__":
 		##############################
 
 		my_rnn = RNN(vocab_size, hdim, vocab_size)
-		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback, epochs=25, log=False)
+
+		np.save("./rnn.U (75 hidd, 10 steps, 2 learn_r, 25 epochs).npy", my_rnn.U)
+		np.save("./rnn.V (75 hidd, 10 steps, 2 learn_r, 25 epochs).npy", my_rnn.V)
+		np.save("./rnn.W (75 hidd, 10 steps, 2 learn_r, 25 epochs).npy", my_rnn.W)
+
 
 	if mode == "predict-lm":
 
@@ -865,3 +858,130 @@ if __name__ == "__main__":
 		np_acc_test = r.compute_acc_lmnp(X_np_test, D_np_test)
 
 		print('Number prediction accuracy on test set:', np_acc_test)
+
+	if mode == "student-direct":
+		""" Train on subject – verb pairs. Evaluate on Q3 dev. """
+
+		train_size = 25000
+		dev_size = 1000
+		vocab_size = 2000
+
+		hdim = int(sys.argv[3])
+		lookback = int(sys.argv[4])
+		lr = float(sys.argv[5])
+
+		# get the data set vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
+
+		# load training data
+		sents = load_np_dataset_direct(data_folder + '/wiki-train.txt')
+		S_train = docs_to_indices(sents, word_to_num, 0, 0)
+		X_train, D_train = seqs_to_npXY(S_train)
+
+		X_train = X_train[:train_size]
+		Y_train = D_train[:train_size]
+
+		# load development data
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
+
+		X_dev = X_dev[:dev_size]
+		D_dev = D_dev[:dev_size]
+
+
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback, log=False, epochs=25)
+
+		np.save(data_folder + "/rnn.U direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy", my_rnn.W)
+
+		print("Saved final learned matrices U, V and W to disk.")
+
+	if mode == "student-difficult":
+		""" Train on difficult examples only – subject and verb are at least 5 words apart. """
+
+		train_size = 25000
+		dev_size = 1000
+		vocab_size = 2000
+
+		hdim = int(sys.argv[3])
+		lookback = int(sys.argv[4])
+		lr = float(sys.argv[5])
+
+		# get the data set vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
+
+		# load training data
+		sents = load_np_dataset_difficult(data_folder + '/wiki-train.txt')
+		print("{} sentences are available for training (fulfill the 'difficult' criteria)".format(len(sents)))
+		S_train = docs_to_indices(sents, word_to_num, 0, 0)
+		X_train, D_train = seqs_to_npXY(S_train)
+
+		if len(sents) > train_size:
+			train_size = len(sents) - 1
+		X_train = X_train[:train_size]
+		Y_train = D_train[:train_size]
+
+		# load development data
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
+
+		X_dev = X_dev[:dev_size]
+		D_dev = D_dev[:dev_size]
+
+
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback, log=False, epochs=25)
+
+		np.save(data_folder + "/rnn.U difficult (50 hidd, 10 steps, 1.5 learn_r, 25 epochs, diff 2).npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V difficult (50 hidd, 10 steps, 1.5 learn_r, 25 epochs, diff 2).npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W difficult (50 hidd, 10 steps, 1.5 learn_r, 25 epochs, diff 2).npy", my_rnn.W)
+
+		print("Saved final learned matrices U, V and W to disk.")
+
+	if mode == 'student-direct-predict':
+		U = np.load('../Q4(b)/rnn.U direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy')
+		V = np.load('../Q4(b)/rnn.V direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy')
+		W = np.load('../Q4(b)/rnn.W direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy')
+		vocab_size = len(V[0])
+		hdim = len(U[0])
+
+		dev_size = 1000
+
+		r = RNN(vocab_size, hdim, vocab_size)
+		r.U = U
+		r.V = V
+		r.W = W
+
+		# get vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
+
+
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
+
+
+		# a_out = []
+		a_hidd = []
+		for i in range(len(X_dev)):
+			y, s = r.predict(X_dev[i])
+			# a_out.append(y[-1])
+			a_hidd.append(s[-2])
+
+		# np.save('activations_output_layer.npy', np.array(a_out))
+		np.save('activations_hidd_layer.npy', np.array(a_hidd))
+		# np.save('targets.npy', D_dev)
+
+
+
+

@@ -54,6 +54,44 @@ def load_lm_np_dataset(fname):
     return sents
 
 
+
+
+def load_np_dataset_direct(fname):
+    """ Sends only the subject. """
+    sents = []
+    cnt = 0
+    with open(fname) as f:
+        for line in f:
+            if cnt == 0:
+                cnt += 1
+                continue
+            items = line.strip().split('\t')
+            subj_idx = int(items[1])
+            verb_idx = int(items[2])
+            verb_pos = items[3]
+            sent = [verb_pos] + items[0].split()[subj_idx:subj_idx + 1]
+            sents.append(sent)
+    return sents
+
+
+def load_np_dataset_difficult(fname):
+    """ Train on difficult examples only – subject and verb are at least 5 words apart. """
+    sents = []
+    cnt = 0
+    with open(fname) as f:
+        for line in f:
+            if cnt == 0:
+                cnt += 1
+                continue
+            items = line.strip().split('\t')
+            verb_idx = int(items[2])
+            subj_idx = int(items[1])
+            verb_pos = items[3]
+            if verb_idx - subj_idx > 2:
+                sent = [verb_pos] + items[0].split()[:verb_idx]
+                sents.append(sent)
+    return sents
+
 def pad_sequence(seq, left=1, right=1):
     return left*["<s>"] + seq + right*["</s>"]
 
