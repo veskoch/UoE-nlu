@@ -31,8 +31,9 @@ def load_np_dataset(fname):
                 continue
             items = line.strip().split('\t')
             verb_idx = int(items[2])
+            subj_idx = int(items[1])
             verb_pos = items[3]
-            sent = [verb_pos] + items[0].split()[:verb_idx]
+            sent = [verb_pos] + items[0].split()[subj_idx:verb_idx]
             sents.append(sent)
     return sents
 
