@@ -120,8 +120,10 @@ class RNN(object):
         for t in reversed(range(len(x))):
             d_hot = make_onehot(d[t], self.vocab_size)
             x_hot = make_onehot(x[t], self.vocab_size)
-            # g_d = np.ones(self.vocab_size) always 1
-            # d_out = np.multiply(d_out, g_d)
+            
+            # Implementation of softmax derivative Equations 9 & 12 respectively commented out:
+            #   g_d = np.ones(self.vocab_size) always 1
+            #   d_out = np.multiply(d_out, g_d)
             d_out = d_hot - y[t]
             self.deltaW += np.outer(d_out, s[t])
 
@@ -188,7 +190,6 @@ class RNN(object):
             d_out = np.multiply(l, g_d)
             self.deltaW += np.outer(d_out, s[t])
 
-            # Initialize recursive
             f_d_step = s[t] * (np.ones(self.hidden_dims) - s[t])
             d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
             self.deltaV += np.outer(d_in_step, x_hot)
@@ -230,7 +231,6 @@ class RNN(object):
         d_out = np.multiply(l, g_d)
         self.deltaW += np.outer(d_out, s[t])
 
-        # Initialize recursive
         f_d_step = s[t] * (np.ones(self.hidden_dims) - s[t])
         d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
         self.deltaV += np.outer(d_in_step, x_hot)
@@ -260,9 +260,9 @@ class RNN(object):
         d_hot = np.zeros((len(d), self.vocab_size))
         d_hot[range(len(d)), d] = 1
 
-        y_hat = self.predict(x)
+        y_hat, _ = self.predict(x)
 
-        return -np.sum(d_hot * np.log(y_hat[0]))
+        return -np.sum(d_hot * np.log(y_hat))
 
     def compute_loss_np(self, x, d):
         '''
@@ -276,12 +276,10 @@ class RNN(object):
 		return loss		we only take the prediction from the last time step
 		'''
 
-        J = 0.
-
         t = len(x[:-1])
         d_hot = make_onehot(d[0], self.vocab_size)
 
-        y_hat, s = self.predict(x)
+        y_hat, _ = self.predict(x)
         return -np.sum(d_hot * np.log(y_hat[-1]))
 
     def compute_acc_np(self, x, d):
@@ -296,7 +294,8 @@ class RNN(object):
 		'''
 
         t = len(x[:-1])
-        y_hat, s = self.predict(x)
+        y_hat, _ = self.predict(x)
+        
         return 1 if np.argmax(y_hat[t]) == d[0] else 0
 
     def compare_num_pred(self, x, d):
@@ -310,8 +309,9 @@ class RNN(object):
 		return 1 if p(d[0]) > p(d[1]), 0 otherwise
 		'''
 
-        y_hat, s = self.predict(x)
+        y_hat, _ = self.predict(x)
         p = np.sum(y_hat, axis = 0)
+        
         return 1 if p[d[0]] > p[d[1]] else 0
 
     def compute_acc_lmnp(self, X_dev, D_dev):
@@ -522,7 +522,7 @@ class RNN(object):
                  D,
                  X_dev,
                  D_dev,
-                 epochs=20,
+                 epochs=10,
                  learning_rate=0.5,
                  anneal=5,
                  back_steps=0,
@@ -709,7 +709,7 @@ if __name__ == "__main__":
 		code for training language model.
 		change this to different values, or use it to get you started with your own testing class
 		'''
-        train_size = 1000
+        train_size = 25000
         dev_size = 1000
         vocab_size = 2000
 
@@ -758,7 +758,7 @@ if __name__ == "__main__":
             X_dev,
             D_dev,
             learning_rate=lr,
-            back_steps=lookback)
+            back_steps=lookback, epochs = 25)
 
         adjusted_loss = adjust_loss(best_loss, fraction_lost, q)
 
@@ -779,15 +779,15 @@ if __name__ == "__main__":
         print("Unadjusted: %.03f" % np.exp(mean_loss))
         print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
-        # print('\nEVALUATION ON FULL TEST SET:')
-        # docs = load_lm_dataset(data_folder + '/wiki-test.txt')
-        # S_dev = docs_to_indices(docs, word_to_num, 1, 1)
-        # X_dev, D_dev = seqs_to_lmXY(S_dev)
-        # mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
-        # adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
-        # print("Mean loss: {}".format(mean_loss))
-        # print("Unadjusted: %.03f" % np.exp(mean_loss))
-        # print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+        print('\nEVALUATION ON FULL TEST SET:')
+        docs = load_lm_dataset(data_folder + '/wiki-test.txt')
+        S_dev = docs_to_indices(docs, word_to_num, 1, 1)
+        X_dev, D_dev = seqs_to_lmXY(S_dev)
+        mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+        adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+        print("Mean loss: {}".format(mean_loss))
+        print("Unadjusted: %.03f" % np.exp(mean_loss))
+        print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
         ##################################
         # --- student code ends here --- #
@@ -798,7 +798,7 @@ if __name__ == "__main__":
 		starter code for parameter estimation.
 		change this to different values, or use it to get you started with your own testing class
 		'''
-        train_size = 10000
+        train_size = 25000
         dev_size = 1000
         vocab_size = 2000
 
@@ -824,7 +824,6 @@ if __name__ == "__main__":
 
         # load training data
         sents = load_np_dataset(data_folder + '/wiki-train.txt')
-        print(len(sents))
         S_train = docs_to_indices(sents, word_to_num, 0, 0)
         X_train, D_train = seqs_to_npXY(S_train)
 
@@ -850,7 +849,12 @@ if __name__ == "__main__":
             X_dev,
             D_dev,
             learning_rate=lr,
-            back_steps=lookback)
+            back_steps=lookback, epochs = 25)
+
+        np.save(data_folder + "/rnn.U.npy", my_rnn.U)
+        np.save(data_folder + "/rnn.V.npy", my_rnn.V)
+        np.save(data_folder + "/rnn.W.npy", my_rnn.W)
+        
 
     if mode == "predict-lm":
 
