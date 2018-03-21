@@ -9,7 +9,7 @@ from sys import stdout
 
 
 class RNN(object):
-    '''
+	'''
 	This class implements Recurrent Neural Networks.
 
 	You should implement code in the following functions:
@@ -26,8 +26,8 @@ class RNN(object):
 	Do NOT change any method signatures!
 	'''
 
-    def __init__(self, vocab_size, hidden_dims, out_vocab_size):
-        '''
+	def __init__(self, vocab_size, hidden_dims, out_vocab_size):
+		'''
 		initialize the RNN with random weight matrices.
 
 		DO NOT CHANGE THIS
@@ -36,43 +36,40 @@ class RNN(object):
 		hidden_dims		number of hidden units
 		out_vocab_size	size of the output vocabulary
 		'''
-        self.vocab_size = vocab_size
-        self.hidden_dims = hidden_dims
-        self.out_vocab_size = out_vocab_size
+		self.vocab_size = vocab_size
+		self.hidden_dims = hidden_dims
+		self.out_vocab_size = out_vocab_size
 
-        # matrices V (input -> hidden), W (hidden -> output), U (hidden -> hidden)
-        self.U = np.random.randn(self.hidden_dims,
-                                 self.hidden_dims) * np.sqrt(0.1)
-        self.V = np.random.randn(self.hidden_dims,
-                                 self.vocab_size) * np.sqrt(0.1)
-        self.W = np.random.randn(self.out_vocab_size,
-                                 self.hidden_dims) * np.sqrt(0.1)
+		# matrices V (input -> hidden), W (hidden -> output), U (hidden -> hidden)
+		self.U = np.random.randn(self.hidden_dims, self.hidden_dims)*np.sqrt(0.1)
+		self.V = np.random.randn(self.hidden_dims, self.vocab_size)*np.sqrt(0.1)
+		self.W = np.random.randn(self.out_vocab_size, self.hidden_dims)*np.sqrt(0.1)
 
-        # matrices to accumulate weight updates
-        self.deltaU = np.zeros((self.hidden_dims, self.hidden_dims))
-        self.deltaV = np.zeros((self.hidden_dims, self.vocab_size))
-        self.deltaW = np.zeros((self.out_vocab_size, self.hidden_dims))
+		# matrices to accumulate weight updates
+		self.deltaU = np.zeros((self.hidden_dims, self.hidden_dims))
+		self.deltaV = np.zeros((self.hidden_dims, self.vocab_size))
+		self.deltaW = np.zeros((self.out_vocab_size, self.hidden_dims))
 
-    def apply_deltas(self, learning_rate):
-        '''
+	def apply_deltas(self, learning_rate):
+		'''
 		update the RNN's weight matrices with corrections accumulated over some training instances
 
 		DO NOT CHANGE THIS
 
 		learning_rate	scaling factor for update weights
 		'''
-        # apply updates to U, V, W
-        self.U += learning_rate * self.deltaU
-        self.W += learning_rate * self.deltaW
-        self.V += learning_rate * self.deltaV
+		# apply updates to U, V, W
+		self.U += learning_rate*self.deltaU
+		self.W += learning_rate*self.deltaW
+		self.V += learning_rate*self.deltaV
 
-        # reset matrices
-        self.deltaU.fill(0.0)
-        self.deltaV.fill(0.0)
-        self.deltaW.fill(0.0)
+		# reset matrices
+		self.deltaU.fill(0.0)
+		self.deltaV.fill(0.0)
+		self.deltaW.fill(0.0)
 
-    def predict(self, x):
-        '''
+	def predict(self, x):
+		'''
 		predict an output sequence y for a given input sequence x
 
 		x	list of words, as indices, e.g.: [0, 4, 2]
@@ -83,25 +80,26 @@ class RNN(object):
 
 		'''
 
-        # matrix s for hidden states, y for output states, given input x.
-        # rows correspond to times t, i.e., input words
-        # s has one more row, since we look back even at time 0
-        s = np.zeros((len(x) + 1, self.hidden_dims))
-        y = np.zeros((len(x), self.out_vocab_size))
+		# matrix s for hidden states, y for output states, given input x.
+		# rows correspond to times t, i.e., input words
 
-        for t in range(len(x)):
-            xt = np.zeros((1, self.vocab_size))
-            xt[0][x[t]] = 1
+		# s has one more row, since we look back even at time 0
+		s = np.zeros((len(x) + 1, self.hidden_dims))
+		y = np.zeros((len(x), self.out_vocab_size))
 
-            s[t] = sigmoid(
-                self.V.dot(xt.T) +
-                np.expand_dims(self.U.dot(s[t - 1, :].T), axis=1)).T
-            y[t] = softmax(self.W.dot(s[t])).T
 
-        return y, s
+		for t in range(len(x)):
+			xt = np.zeros((1, self.vocab_size))
+			xt[0][x[t]] = 1
 
-    def acc_deltas(self, x, d, y, s):
-        '''
+			s[t] = sigmoid(self.V.dot(xt.T) + np.expand_dims(self.U.dot(s[t-1, :].T), axis=1)).T
+			y[t] = softmax(self.W.dot(s[t])).T
+
+
+		return y, s
+
+	def acc_deltas(self, x, d, y, s):
+		'''
 		accumulate updates for V, W, U
 		standard back propagation
 
@@ -117,24 +115,24 @@ class RNN(object):
 		no return values
 		'''
 
-        for t in reversed(range(len(x))):
-            d_hot = make_onehot(d[t], self.vocab_size)
-            x_hot = make_onehot(x[t], self.vocab_size)
-            
-            # Implementation of softmax derivative Equations 9 & 12 respectively commented out:
-            #   g_d = np.ones(self.vocab_size) always 1
-            #   d_out = np.multiply(d_out, g_d)
-            d_out = d_hot - y[t]
-            self.deltaW += np.outer(d_out, s[t])
+		# ##########################
+		# # --- your code here --- #
+		# ##########################
+		for t in reversed(range(len(x))):
+			d_hot = np.zeros(self.vocab_size)
+			d_hot[d[t]] = 1
+			x_hot = np.zeros(self.vocab_size)
+			x_hot[x[t]] = 1
 
-            f_d = s[t] * (np.ones(self.hidden_dims) - s[t])
-            d_in = np.multiply(np.dot(self.W.T, d_out), f_d)
-            self.deltaV += np.outer(d_in, x_hot)
+			delta_out = d_hot - y[t]
+			delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
 
-            self.deltaU += np.outer(d_in, s[t - 1])
+			self.deltaW += np.outer(delta_out, s[t])
+			self.deltaV += np.outer(delta_in, x_hot)
+			self.deltaU += np.outer(delta_in, s[t-1])
 
-    def acc_deltas_np(self, x, d, y, s):
-        '''
+	def acc_deltas_np(self, x, d, y, s):
+		'''
 		accumulate updates for V, W, U
 		standard back propagation
 
@@ -151,22 +149,25 @@ class RNN(object):
 		no return values
 		'''
 
-        t = len(x[:-1])
-        d_hot = make_onehot(d, self.vocab_size)
-        x_hot = make_onehot(x[t], self.vocab_size)
-        l = d_hot - y[t]
-        g_d = np.ones(self.vocab_size)
-        d_out = np.multiply(l, g_d)
-        self.deltaW += np.outer(d_out, s[t])
+		##########################
+		# --- your code here --- #
+		##########################
 
-        f_d = s[t] * (np.ones(self.hidden_dims) - s[t])
-        d_in = np.multiply(np.dot(self.W.T, d_out), f_d)
-        self.deltaV += np.outer(d_in, x_hot)
+		t = len(x) - 1
+		x_hot = np.zeros(self.vocab_size)
+		x_hot[x[t]] = 1
+		d_hot = np.zeros(self.vocab_size)
+		d_hot[d[0]] = 1
 
-        self.deltaU += np.outer(d_in, s[t - 1])
+		delta_out = d_hot - y[t]
+		delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
 
-    def acc_deltas_bptt(self, x, d, y, s, steps):
-        '''
+		self.deltaW += np.outer(delta_out, s[t])
+		self.deltaV += np.outer(delta_in, x_hot)
+		self.deltaU += np.outer(delta_in, s[t - 1])
+
+	def acc_deltas_bptt(self, x, d, y, s, steps):
+		'''
 		accumulate updates for V, W, U
 		back propagation through time (BPTT)
 
@@ -182,30 +183,40 @@ class RNN(object):
 
 		no return values
 		'''
-        for t in reversed(range(len(x))):
-            d_hot = make_onehot(d[t], self.vocab_size)
-            x_hot = make_onehot(x[t], self.vocab_size)
-            l = d_hot - y[t]
-            g_d = np.ones(self.vocab_size)
-            d_out = np.multiply(l, g_d)
-            self.deltaW += np.outer(d_out, s[t])
 
-            f_d_step = s[t] * (np.ones(self.hidden_dims) - s[t])
-            d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
-            self.deltaV += np.outer(d_in_step, x_hot)
-            self.deltaU += np.outer(d_in_step, s[t - 1])
+		##########################
+		# --- your code here --- #
+		##########################
 
-            steps_generator = (i for i in range(steps) if t - i >= 0)
-            for step in steps_generator:
-                x_hot_step = make_onehot(x[t - step - 1], self.vocab_size)
-                f_d_step = s[t - step - 1] * (np.ones(1) - s[t - step - 1])
-                d_in_step = np.multiply(np.dot(self.U.T, d_in_step), f_d_step)
+		for t in reversed(range(len(x))):
+			d_hot = np.zeros(self.vocab_size)
+			d_hot[d[t]] = 1
+			x_hot = np.zeros(self.vocab_size)
+			x_hot[x[t]] = 1
 
-                self.deltaV += np.outer(d_in_step, x_hot_step)
-                self.deltaU += np.outer(d_in_step, s[t - step - 2])
+			delta_out = d_hot - y[t]
+			delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
 
-    def acc_deltas_bptt_np(self, x, d, y, s, steps):
-        '''
+			self.deltaW += np.outer(delta_out, s[t])
+			self.deltaV += np.outer(delta_in, x_hot)
+			self.deltaU += np.outer(delta_in, s[t - 1])
+
+			delta_in_prev = delta_in
+
+			for tau in range(1, steps + 1):
+				if t >= tau:
+					x_hot = np.zeros(self.vocab_size)
+					x_hot[x[t-tau]] = 1
+
+					delta_in = self.U.T.dot(delta_in_prev) * s[t-tau] * (np.ones(self.hidden_dims) - s[t-tau])
+
+					self.deltaV += np.outer(delta_in, x_hot)
+					self.deltaU += np.outer(delta_in, s[t-tau-1])
+
+					delta_in_prev = delta_in
+
+	def acc_deltas_bptt_np(self, x, d, y, s, steps):
+		'''
 		accumulate updates for V, W, U
 		back propagation through time (BPTT)
 
@@ -223,30 +234,39 @@ class RNN(object):
 		no return values
 		'''
 
-        t = len(x[:-1])
-        d_hot = make_onehot(d[0], self.vocab_size)
-        x_hot = make_onehot(x[t], self.vocab_size)
-        l = d_hot - y[t]
-        g_d = np.ones(self.vocab_size)
-        d_out = np.multiply(l, g_d)
-        self.deltaW += np.outer(d_out, s[t])
+		##########################
+		# --- your code here --- #
+		##########################
 
-        f_d_step = s[t] * (np.ones(self.hidden_dims) - s[t])
-        d_in_step = np.multiply(np.dot(self.W.T, d_out), f_d_step)
-        self.deltaV += np.outer(d_in_step, x_hot)
-        self.deltaU += np.outer(d_in_step, s[t - 1])
+		t = len(x) - 1
+		d_hot = np.zeros(self.vocab_size)
+		d_hot[d[0]] = 1
+		x_hot = np.zeros(self.vocab_size)
+		x_hot[x[t]] = 1
 
-        steps_generator = (i for i in range(steps) if t - i >= 0)
-        for step in steps_generator:
-            x_hot_step = make_onehot(x[t - step - 1], self.vocab_size)
-            f_d_step = s[t - step - 1] * (np.ones(1) - s[t - step - 1])
-            d_in_step = np.multiply(np.dot(self.U.T, d_in_step), f_d_step)
+		delta_out = d_hot - y[t]
+		delta_in = self.W.T.dot(delta_out) * s[t] * (np.ones(self.hidden_dims) - s[t])
 
-            self.deltaV += np.outer(d_in_step, x_hot_step)
-            self.deltaU += np.outer(d_in_step, s[t - step - 2])
+		self.deltaW += np.outer(delta_out, s[t])
+		self.deltaV += np.outer(delta_in, x_hot)
+		self.deltaU += np.outer(delta_in, s[t - 1])
 
-    def compute_loss(self, x, d):
-        '''
+		delta_in_prev = delta_in
+
+		for tau in range(1, steps + 1):
+			if t >= tau:
+				x_hot = np.zeros(self.vocab_size)
+				x_hot[x[t - tau]] = 1
+
+				delta_in = self.U.T.dot(delta_in_prev) * s[t - tau] * (np.ones(self.hidden_dims) - s[t - tau])
+
+				self.deltaV += np.outer(delta_in, x_hot)
+				self.deltaU += np.outer(delta_in, s[t - tau - 1])
+
+				delta_in_prev = delta_in
+
+	def compute_loss(self, x, d):
+		'''
 		compute the loss between predictions y for x, and desired output d.
 
 		first predicts the output for x using the RNN, then computes the loss w.r.t. d
@@ -257,15 +277,20 @@ class RNN(object):
 		return loss		the combined loss for all words
 		'''
 
-        d_hot = np.zeros((len(d), self.vocab_size))
-        d_hot[range(len(d)), d] = 1
+		##########################
+		# --- your code here --- #
+		##########################
 
-        y_hat, _ = self.predict(x)
+		d_hot = np.zeros((len(d), self.vocab_size))
+		d_hot[range(len(d)), d] = 1
 
-        return -np.sum(d_hot * np.log(y_hat))
+		y_hat = self.predict(x)
 
-    def compute_loss_np(self, x, d):
-        '''
+		return - np.sum(d_hot * np.log(y_hat[0]))
+
+
+	def compute_loss_np(self, x, d):
+		'''
 		compute the loss between predictions y for x, and desired output d.
 
 		first predicts the output for x using the RNN, then computes the loss w.r.t. d
@@ -276,14 +301,21 @@ class RNN(object):
 		return loss		we only take the prediction from the last time step
 		'''
 
-        t = len(x[:-1])
-        d_hot = make_onehot(d[0], self.vocab_size)
 
-        y_hat, _ = self.predict(x)
-        return -np.sum(d_hot * np.log(y_hat[-1]))
+		##########################
+		# --- your code here --- #
+		##########################
 
-    def compute_acc_np(self, x, d):
-        '''
+		d_hot = np.zeros(self.vocab_size)
+		d_hot[d[0]] = 1
+
+		y_hat = self.predict(x)
+
+		return - np.sum(d_hot * np.log(y_hat[0][-1]))
+
+
+	def compute_acc_np(self, x, d):
+		'''
 		compute the accuracy prediction, y[t] compared to the desired output d.
 		first predicts the output for x using the RNN, then computes the loss w.r.t. d
 
@@ -293,13 +325,16 @@ class RNN(object):
 		return 1 if argmax(y[t]) == d[0], 0 otherwise
 		'''
 
-        t = len(x[:-1])
-        y_hat, _ = self.predict(x)
-        
-        return 1 if np.argmax(y_hat[t]) == d[0] else 0
 
-    def compare_num_pred(self, x, d):
-        '''
+		y = self.predict(x)
+		if np.argmax(y[0][-1]) == d[0]:
+			return 1
+		else:
+			return 0
+
+
+	def compare_num_pred(self, x, d):
+		'''
 		compute the probability between predictions the desired output d[0] and it's (re)inflected form, d[1].
 		first predicts the output for x using the RNN, then compare the probability of d[0] and d[1].
 
@@ -309,28 +344,36 @@ class RNN(object):
 		return 1 if p(d[0]) > p(d[1]), 0 otherwise
 		'''
 
-        y_hat, _ = self.predict(x)
-        p = np.sum(y_hat, axis = 0)
-        
-        return 1 if p[d[0]] > p[d[1]] else 0
+		##############################
+		# --- student code below --- #
+		##############################
 
-    def compute_acc_lmnp(self, X_dev, D_dev):
-        '''
+		# d[0] desired output
+		# d[1] (re)inflected form
+
+		y = self.predict(x)[0]
+
+		if y[-1][d[0]] > y[-1][d[1]]:
+			return 1
+		else:
+			return 0
+
+
+	def compute_acc_lmnp(self, X_dev, D_dev):
+		'''
 
 		DO NOT CHANGE THIS
 
 		X_dev			a list of input vectors, e.g., 		[[5, 4, 2], [7, 3, 8]]
 		D_dev			a list of pair verb forms (plural/singular), e.g., 	[[4, 9], [6, 5]]
 		'''
-        acc = sum([
-            self.compare_num_pred(X_dev[i], D_dev[i])
-            for i in range(len(X_dev))
-        ]) / len(X_dev)
+		acc = sum([self.compare_num_pred(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / len(X_dev)
 
-        return acc
+		return acc
 
-    def compute_mean_loss(self, X, D):
-        '''
+
+	def compute_mean_loss(self, X, D):
+		'''
 		compute the mean loss between predictions for corpus X and desired outputs in corpus D.
 
 		X		corpus of sentences x1, x2, x3, [...], each a list of words as indices.
@@ -339,28 +382,19 @@ class RNN(object):
 		return mean_loss		average loss over all words in D
 		'''
 
-        total_loss = 0.0
-        n_words = 0
+		total_loss = 0.0
+		n_words = 0
 
-        for i in range(len(X)):
-            total_loss += self.compute_loss(X[i], D[i])
-            n_words += len(X[i])
+		for i in range(len(X)):
+			total_loss += self.compute_loss(X[i], D[i])
+			n_words += len(X[i])
 
-        return total_loss / float(n_words)
 
-    def train(self,
-              X,
-              D,
-              X_dev,
-              D_dev,
-              epochs=10,
-              learning_rate=0.5,
-              anneal=5,
-              back_steps=0,
-              batch_size=100,
-              min_change=0.0001,
-              log=True):
-        '''
+		return total_loss / float(n_words)
+
+
+	def train(self, X, D, X_dev, D_dev, epochs=10, learning_rate=0.5, anneal=5, back_steps=0, batch_size=100, min_change=0.0001, log=True):
+		'''
 		train the RNN on some training set X, D while optimizing the loss on a dev set X_dev, D_dev
 
 		DO NOT CHANGE THIS
@@ -388,148 +422,118 @@ class RNN(object):
 						default 0.0001
 		log				whether or not to print out log messages. (default log=True)
 		'''
-        if log:
-            stdout.write(
-                "\nTraining model for {0} epochs\ntraining set: {1} sentences (batch size {2})".
-                format(epochs, len(X), batch_size))
-            stdout.write("\nOptimizing loss on {0} sentences".format(
-                len(X_dev)))
-            stdout.write("\nVocab size: {0}\nHidden units: {1}".format(
-                self.vocab_size, self.hidden_dims))
-            stdout.write(
-                "\nSteps for back propagation: {0}".format(back_steps))
-            stdout.write(
-                "\nInitial learning rate set to {0}, annealing set to {1}".
-                format(learning_rate, anneal))
-            stdout.write("\n\ncalculating initial mean loss on dev set")
-            stdout.flush()
+		if log:
+			stdout.write("\nTraining model for {0} epochs\ntraining set: {1} sentences (batch size {2})".format(epochs, len(X), batch_size))
+			stdout.write("\nOptimizing loss on {0} sentences".format(len(X_dev)))
+			stdout.write("\nVocab size: {0}\nHidden units: {1}".format(self.vocab_size, self.hidden_dims))
+			stdout.write("\nSteps for back propagation: {0}".format(back_steps))
+			stdout.write("\nInitial learning rate set to {0}, annealing set to {1}".format(learning_rate, anneal))
+			stdout.write("\n\ncalculating initial mean loss on dev set")
+			stdout.flush()
 
-        t_start = time.time()
-        loss_function = self.compute_loss
+		t_start = time.time()
+		loss_function = self.compute_loss
 
-        loss_sum = sum([len(d) for d in D_dev])
-        initial_loss = sum(
-            [loss_function(X_dev[i], D_dev[i])
-             for i in range(len(X_dev))]) / loss_sum
+		loss_sum = sum([len(d) for d in D_dev])
+		initial_loss = sum([loss_function(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / loss_sum
 
-        if log or not log:
-            stdout.write(": {0}\n".format(initial_loss))
-            stdout.flush()
+		if log or not log:
+			stdout.write(": {0}\n".format(initial_loss))
+			stdout.flush()
 
-        prev_loss = initial_loss
-        loss_watch_count = -1
-        min_change_count = -1
+		prev_loss = initial_loss
+		loss_watch_count = -1
+		min_change_count = -1
 
-        a0 = learning_rate
+		a0 = learning_rate
 
-        best_loss = initial_loss
-        bestU, bestV, bestW = self.U, self.V, self.W
-        best_epoch = 0
+		best_loss = initial_loss
+		bestU, bestV, bestW = self.U, self.V, self.W
+		best_epoch = 0
 
-        for epoch in range(epochs):
-            if anneal > 0:
-                learning_rate = a0 / ((epoch + 0.0 + anneal) / anneal)
-            else:
-                learning_rate = a0
+		for epoch in range(epochs):
+			if anneal > 0:
+				learning_rate = a0/((epoch+0.0+anneal)/anneal)
+			else:
+				learning_rate = a0
 
-            if log:
-                stdout.write("\nepoch %d, learning rate %.04f" %
-                             (epoch + 1, learning_rate))
-                stdout.flush()
+			if log:
+				stdout.write("\nepoch %d, learning rate %.04f" % (epoch+1, learning_rate))
+				stdout.flush()
 
-            t0 = time.time()
-            count = 0
+			t0 = time.time()
+			count = 0
 
-            # use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
-            permutation = np.random.permutation(range(len(X)))
-            if log:
-                #stdout.write("\tinstance 1")
-                pass
-            for i in range(len(X)):
-                c = i + 1
-                if log:
-                    #stdout.write("\b" * len(str(i)))
-                    #stdout.write("{0}".format(c))
-                    #stdout.flush()
-                    pass
-                p = permutation[i]
-                x_p = X[p]
-                d_p = D[p]
+			# use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
+			permutation = np.random.permutation(range(len(X)))
+			if log:
+				stdout.write("\tinstance 1")
+			for i in range(len(X)):
+				c = i+1
+				if log:
+					stdout.write("\b"*len(str(i)))
+					stdout.write("{0}".format(c))
+					stdout.flush()
+				p = permutation[i]
+				x_p = X[p]
+				d_p = D[p]
 
-                y_p, s_p = self.predict(x_p)
-                if back_steps == 0:
-                    self.acc_deltas(x_p, d_p, y_p, s_p)
-                else:
-                    self.acc_deltas_bptt(x_p, d_p, y_p, s_p, back_steps)
+				y_p, s_p = self.predict(x_p)
+				if back_steps == 0:
+					self.acc_deltas(x_p, d_p, y_p, s_p)
+				else:
+					self.acc_deltas_bptt(x_p, d_p, y_p, s_p, back_steps)
 
-                if i % batch_size == 0:
-                    self.deltaU /= batch_size
-                    self.deltaV /= batch_size
-                    self.deltaW /= batch_size
-                    self.apply_deltas(learning_rate)
+				if i % batch_size == 0:
+					self.deltaU /= batch_size
+					self.deltaV /= batch_size
+					self.deltaW /= batch_size
+					self.apply_deltas(learning_rate)
 
-            if len(X) % batch_size > 0:
-                mod = len(X) % batch_size
-                self.deltaU /= mod
-                self.deltaV /= mod
-                self.deltaW /= mod
-                self.apply_deltas(learning_rate)
+			if len(X) % batch_size > 0:
+				mod = len(X) % batch_size
+				self.deltaU /= mod
+				self.deltaV /= mod
+				self.deltaW /= mod
+				self.apply_deltas(learning_rate)
 
-            loss = sum(
-                [loss_function(X_dev[i], D_dev[i])
-                 for i in range(len(X_dev))]) / loss_sum
+			loss = sum([loss_function(X_dev[i], D_dev[i]) for i in range(len(X_dev))])/loss_sum
 
-            if log:
-                stdout.write("\tepoch done in %.02f seconds" %
-                             (time.time() - t0))
-                stdout.write("\tnew loss: {0}".format(loss))
-                stdout.flush()
+			if log:
+				stdout.write("\tepoch done in %.02f seconds" % (time.time() - t0))
+				stdout.write("\tnew loss: {0}".format(loss))
+				stdout.flush()
 
-            if loss < best_loss:
-                best_loss = loss
-                bestU, bestV, bestW = self.U.copy(), self.V.copy(
-                ), self.W.copy()
-                best_epoch = epoch
+			if loss < best_loss:
+				best_loss = loss
+				bestU, bestV, bestW = self.U.copy(), self.V.copy(), self.W.copy()
+				best_epoch = epoch
 
-            # make sure we change the RNN enough
-            if abs(prev_loss - loss) < min_change:
-                min_change_count += 1
-            else:
-                min_change_count = 0
-            if min_change_count > 2:
-                print(
-                    "\n\ntraining finished after {0} epochs due to minimal change in loss".
-                    format(epoch + 1))
-                break
+			# make sure we change the RNN enough
+			if abs(prev_loss - loss) < min_change:
+				min_change_count += 1
+			else:
+				min_change_count = 0
+			if min_change_count > 2:
+				print("\n\ntraining finished after {0} epochs due to minimal change in loss".format(epoch+1))
+				break
 
-            prev_loss = loss
+			prev_loss = loss
 
-        t = time.time() - t_start
+		t = time.time() - t_start
 
-        if min_change_count <= 2:
-            print("\n\ntraining finished after reaching maximum of {0} epochs".
-                  format(epochs))
-        print("best observed loss was {0}, at epoch {1}".format(
-            best_loss, (best_epoch + 1)))
+		if min_change_count <= 2:
+			print("\n\ntraining finished after reaching maximum of {0} epochs".format(epochs))
+		print("best observed loss was {0}, at epoch {1}".format(best_loss, (best_epoch+1)))
 
-        print("setting U, V, W to matrices from best epoch")
-        self.U, self.V, self.W = bestU, bestV, bestW
+		print("setting U, V, W to matrices from best epoch")
+		self.U, self.V, self.W = bestU, bestV, bestW
 
-        return best_loss
+		return best_loss
 
-    def train_np(self,
-                 X,
-                 D,
-                 X_dev,
-                 D_dev,
-                 epochs=10,
-                 learning_rate=0.5,
-                 anneal=5,
-                 back_steps=0,
-                 batch_size=100,
-                 min_change=0.0001,
-                 log=True):
-        '''
+
+	def train_np(self, X, D, X_dev, D_dev, epochs=10, learning_rate=0.5, anneal=5, back_steps=0, batch_size=100, min_change=0.0001, log=True):
+		'''
 		train the RNN on some training set X, D while optimizing the loss on a dev set X_dev, D_dev
 
 		DO NOT CHANGE THIS
@@ -557,351 +561,427 @@ class RNN(object):
 						default 0.0001
 		log				whether or not to print out log messages. (default log=True)
 		'''
-        if log:
-            stdout.write(
-                "\nTraining model for {0} epochs\ntraining set: {1} sentences (batch size {2})".
-                format(epochs, len(X), batch_size))
-            stdout.write("\nOptimizing loss on {0} sentences".format(
-                len(X_dev)))
-            stdout.write("\nVocab size: {0}\nHidden units: {1}".format(
-                self.vocab_size, self.hidden_dims))
-            stdout.write(
-                "\nSteps for back propagation: {0}".format(back_steps))
-            stdout.write(
-                "\nInitial learning rate set to {0}, annealing set to {1}".
-                format(learning_rate, anneal))
-            stdout.flush()
+		if log or not log:
+			stdout.write("\nTraining model for {0} epochs\ntraining set: {1} sentences (batch size {2})".format(epochs, len(X), batch_size))
+			stdout.write("\nOptimizing loss on {0} sentences".format(len(X_dev)))
+			stdout.write("\nVocab size: {0}\nHidden units: {1}".format(self.vocab_size, self.hidden_dims))
+			stdout.write("\nSteps for back propagation: {0}".format(back_steps))
+			stdout.write("\nInitial learning rate set to {0}, annealing set to {1}".format(learning_rate, anneal))
+			stdout.flush()
 
-        t_start = time.time()
-        loss_function = self.compute_loss_np
+		t_start = time.time()
+		loss_function = self.compute_loss_np
 
-        loss_sum = len(D_dev)
-        initial_loss = sum(
-            [loss_function(X_dev[i], D_dev[i])
-             for i in range(len(X_dev))]) / loss_sum
-        initial_acc = sum([
-            self.compute_acc_np(X_dev[i], D_dev[i]) for i in range(len(X_dev))
-        ]) / len(X_dev)
+		loss_sum = len(D_dev)
+		initial_loss = sum([loss_function(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / loss_sum
+		initial_acc = sum([self.compute_acc_np(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / len(X_dev)
 
-        if log or not log:
-            stdout.write("\n\ncalculating initial mean loss on dev set")
-            stdout.write(": {0}\n".format(initial_loss))
-            stdout.write("calculating initial acc on dev set")
-            stdout.write(": {0}\n".format(initial_acc))
-            stdout.flush()
+		if log or not log:
+			stdout.write("\n\ncalculating initial mean loss on dev set")
+			stdout.write(": {0}\n".format(initial_loss))
+			stdout.write("calculating initial acc on dev set")
+			stdout.write(": {0}\n".format(initial_acc))
+			stdout.flush()
 
-        prev_loss = initial_loss
-        loss_watch_count = -1
-        min_change_count = -1
+		prev_loss = initial_loss
+		loss_watch_count = -1
+		min_change_count = -1
 
-        a0 = learning_rate
+		a0 = learning_rate
 
-        best_loss = initial_loss
-        bestU, bestV, bestW = self.U, self.V, self.W
-        best_epoch = 0
+		best_loss = initial_loss
+		bestU, bestV, bestW = self.U, self.V, self.W
+		best_epoch = 0
 
-        for epoch in range(epochs):
-            if anneal > 0:
-                learning_rate = a0 / ((epoch + 0.0 + anneal) / anneal)
-            else:
-                learning_rate = a0
+		for epoch in range(epochs):
+			if anneal > 0:
+				learning_rate = a0/((epoch+0.0+anneal)/anneal)
+			else:
+				learning_rate = a0
 
-            if log:
-                stdout.write("\nepoch %d, learning rate %.04f" %
-                             (epoch + 1, learning_rate))
-                stdout.flush()
+			if log or not log:
+				stdout.write("\nepoch %d, learning rate %.04f" % (epoch+1, learning_rate))
+				stdout.flush()
 
-            t0 = time.time()
-            count = 0
+			t0 = time.time()
+			count = 0
 
-            # use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
-            permutation = np.random.permutation(range(len(X)))
-            if log:
-                #stdout.write("\tinstance 1")
-                pass
-            for i in range(len(X)):
-                c = i + 1
-                if log:
-                    #stdout.write("\b" * len(str(i)))
-                    #stdout.write("{0}".format(c))
-                    #stdout.flush()
-                    pass
-                p = permutation[i]
-                x_p = X[p]
-                d_p = D[p]
+			# use random sequence of instances in the training set (tries to avoid local maxima when training on batches)
+			permutation = np.random.permutation(range(len(X)))
+			if log or not log:
+				stdout.write("\tinstance 1")
+			for i in range(len(X)):
+				c = i+1
+				if log:
+					stdout.write("\b"*len(str(i)))
+					stdout.write("{0}".format(c))
+					stdout.flush()
+				p = permutation[i]
+				x_p = X[p]
+				d_p = D[p]
 
-                y_p, s_p = self.predict(x_p)
-                if back_steps == 0:
-                    self.acc_deltas_np(x_p, d_p, y_p, s_p)
-                else:
-                    self.acc_deltas_bptt_np(x_p, d_p, y_p, s_p, back_steps)
+				y_p, s_p = self.predict(x_p)
+				if back_steps == 0:
+					self.acc_deltas_np(x_p, d_p, y_p, s_p)
+				else:
+					self.acc_deltas_bptt_np(x_p, d_p, y_p, s_p, back_steps)
 
-                if i % batch_size == 0:
-                    self.deltaU /= batch_size
-                    self.deltaV /= batch_size
-                    self.deltaW /= batch_size
-                    self.apply_deltas(learning_rate)
+				if i % batch_size == 0:
+					self.deltaU /= batch_size
+					self.deltaV /= batch_size
+					self.deltaW /= batch_size
+					self.apply_deltas(learning_rate)
 
-            if len(X) % batch_size > 0:
-                mod = len(X) % batch_size
-                self.deltaU /= mod
-                self.deltaV /= mod
-                self.deltaW /= mod
-                self.apply_deltas(learning_rate)
+			if len(X) % batch_size > 0:
+				mod = len(X) % batch_size
+				self.deltaU /= mod
+				self.deltaV /= mod
+				self.deltaW /= mod
+				self.apply_deltas(learning_rate)
 
-            loss = sum(
-                [loss_function(X_dev[i], D_dev[i])
-                 for i in range(len(X_dev))]) / loss_sum
-            acc = sum([
-                self.compute_acc_np(X_dev[i], D_dev[i])
-                for i in range(len(X_dev))
-            ]) / len(X_dev)
+			loss = sum([loss_function(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / loss_sum
+			acc = sum([self.compute_acc_np(X_dev[i], D_dev[i]) for i in range(len(X_dev))]) / len(X_dev)
 
-            if log:
-                stdout.write("\tepoch done in %.02f seconds" %
-                             (time.time() - t0))
-                stdout.write("\tnew loss: {0}".format(loss))
-                stdout.write("\tnew acc: {0}".format(acc))
-                stdout.flush()
+			if log or not log:
+				stdout.write("\tepoch done in %.02f seconds" % (time.time() - t0))
+				stdout.write("\tnew loss: {0}".format(loss))
+				stdout.write("\tnew acc: {0}".format(acc))
+				stdout.flush()
 
-            if loss < best_loss:
-                best_loss = loss
-                best_acc = acc
-                bestU, bestV, bestW = self.U.copy(), self.V.copy(
-                ), self.W.copy()
-                best_epoch = epoch
+			if loss < best_loss:
+				best_loss = loss
+				best_acc = acc
+				bestU, bestV, bestW = self.U.copy(), self.V.copy(), self.W.copy()
+				best_epoch = epoch
 
-            # make sure we change the RNN enough
-            if abs(prev_loss - loss) < min_change:
-                min_change_count += 1
-            else:
-                min_change_count = 0
-            if min_change_count > 2:
-                print(
-                    "\n\ntraining finished after {0} epochs due to minimal change in loss".
-                    format(epoch + 1))
-                break
+			# make sure we change the RNN enough
+			if abs(prev_loss - loss) < min_change:
+				min_change_count += 1
+			else:
+				min_change_count = 0
+			if min_change_count > 2:
+				print("\n\ntraining finished after {0} epochs due to minimal change in loss".format(epoch+1))
+				break
 
-            prev_loss = loss
+			prev_loss = loss
 
-        t = time.time() - t_start
+		t = time.time() - t_start
 
-        if min_change_count <= 2:
-            print("\n\ntraining finished after reaching maximum of {0} epochs".
-                  format(epochs))
-        print("best observed loss was {0}, acc {1}, at epoch {2}".format(
-            best_loss, best_acc, (best_epoch + 1)))
+		if min_change_count <= 2:
+			print("\n\ntraining finished after reaching maximum of {0} epochs".format(epochs))
+		print("best observed loss was {0}, acc {1}, at epoch {2}".format(best_loss, best_acc, (best_epoch+1)))
 
-        print("setting U, V, W to matrices from best epoch")
-        self.U, self.V, self.W = bestU, bestV, bestW
+		print("setting U, V, W to matrices from best epoch")
+		self.U, self.V, self.W = bestU, bestV, bestW
 
-        return best_loss
+		return best_loss
 
 
 if __name__ == "__main__":
+	# python rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 25 0 0.5
+	mode = sys.argv[1].lower()
+	data_folder = sys.argv[2]
+	np.random.seed(2018)
 
-    mode = sys.argv[1].lower()
-    data_folder = sys.argv[2]
-    np.random.seed(42)
-
-    if mode == "train-lm":
-        '''
+	if mode == "train-lm":
+		'''
 		code for training language model.
 		change this to different values, or use it to get you started with your own testing class
+		
+		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-lm /Users/vesko/GitHub/UoE-nlu/data 50 2 1.5
+		
 		'''
-        train_size = 25000
-        dev_size = 1000
-        vocab_size = 2000
+		train_size = 25000
+		dev_size = 1000
+		vocab_size = 2000
 
-        hdim = int(sys.argv[3])
-        lookback = int(sys.argv[4])
-        lr = float(sys.argv[5])
+		hdim = int(sys.argv[3])
+		lookback = int(sys.argv[4])
+		lr = float(sys.argv[5])
 
-        # get the data set vocabulary
-        vocab = pd.read_table(
-            data_folder + "/vocab.wiki.txt",
-            header=None,
-            sep="\s+",
-            index_col=0,
-            names=['count', 'freq'],
-        )
-        num_to_word = dict(enumerate(vocab.index[:vocab_size]))
-        word_to_num = invert_dict(num_to_word)
+		# get the data set vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
 
-        # calculate loss vocabulary words due to vocab_size
-        fraction_lost = fraq_loss(vocab, word_to_num, vocab_size)
-        print("Retained %d words from %d (%.02f%% of all tokens)\n" %
-              (vocab_size, len(vocab), 100 * (1 - fraction_lost)))
+		# calculate loss vocabulary words due to vocab_size
+		fraction_lost = fraq_loss(vocab, word_to_num, vocab_size)
+		print("Retained %d words from %d (%.02f%% of all tokens)\n" % (vocab_size, len(vocab), 100*(1-fraction_lost)))
 
-        docs = load_lm_dataset(data_folder + '/wiki-train.txt')
-        S_train = docs_to_indices(docs, word_to_num, 1, 1)
-        X_train, D_train = seqs_to_lmXY(S_train)
+		docs = load_lm_dataset(data_folder + '/wiki-train.txt')
+		S_train = docs_to_indices(docs, word_to_num, 1, 1)
+		X_train, D_train = seqs_to_lmXY(S_train)
 
-        # Load the dev set (for tuning hyperparameters)
-        docs = load_lm_dataset(data_folder + '/wiki-dev.txt')
-        S_dev = docs_to_indices(docs, word_to_num, 1, 1)
-        X_dev, D_dev = seqs_to_lmXY(S_dev)
+		# Load the dev set (for tuning hyperparameters)
+		docs = load_lm_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(docs, word_to_num, 1, 1)
+		X_dev, D_dev = seqs_to_lmXY(S_dev)
 
-        X_train = X_train[:train_size]
-        D_train = D_train[:train_size]
-        X_dev = X_dev[:dev_size]
-        D_dev = D_dev[:dev_size]
+		X_train = X_train[:train_size]
+		D_train = D_train[:train_size]
+		X_dev = X_dev[:dev_size]
+		D_dev = D_dev[:dev_size]
 
-        # q = best unigram frequency from omitted vocab
-        # this is the best expected loss out of that set
-        q = vocab.freq[vocab_size] / sum(vocab.freq[vocab_size:])
+		# q = best unigram frequency from omitted vocab
+		# this is the best expected loss out of that set
+		q = vocab.freq[vocab_size] / sum(vocab.freq[vocab_size:])
 
-        my_rnn = RNN(vocab_size, hdim, vocab_size)
-        best_loss = my_rnn.train(
-            X_train,
-            D_train,
-            X_dev,
-            D_dev,
-            learning_rate=lr,
-            back_steps=lookback, epochs = 25)
+		##########################
+		# --- your code here --- #
+		##########################
 
-        adjusted_loss = adjust_loss(best_loss, fraction_lost, q)
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		best_loss = my_rnn.train(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback)
 
-        print("Unadjusted: %.03f" % np.exp(best_loss))
-        print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+		adjusted_loss = adjust_loss(best_loss, fraction_lost, q)
 
-        np.save(data_folder + "/rnn.U.npy", my_rnn.U)
-        np.save(data_folder + "/rnn.V.npy", my_rnn.V)
-        np.save(data_folder + "/rnn.W.npy", my_rnn.W)
 
-        print("Saved final learned matrices U, V and W to disk.")
+		print("Unadjusted: %.03f" % np.exp(best_loss))
+		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
 
-        print('\nEVALUATION ON FULL DEV SET:')
-        X_dev, D_dev = seqs_to_lmXY(S_dev)
-        mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
-        adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
-        print("Mean loss: {}".format(mean_loss))
-        print("Unadjusted: %.03f" % np.exp(mean_loss))
-        print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+		np.save(data_folder + "/rnn.U.npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V.npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W.npy", my_rnn.W)
 
-        print('\nEVALUATION ON FULL TEST SET:')
-        docs = load_lm_dataset(data_folder + '/wiki-test.txt')
-        S_dev = docs_to_indices(docs, word_to_num, 1, 1)
-        X_dev, D_dev = seqs_to_lmXY(S_dev)
-        mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
-        adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
-        print("Mean loss: {}".format(mean_loss))
-        print("Unadjusted: %.03f" % np.exp(mean_loss))
-        print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+		print("Saved final learned matrices U, V and W to disk.")
 
-        ##################################
-        # --- student code ends here --- #
-        ##################################
 
-    if mode == "train-np":
-        '''
+		print('\nEVALUATION ON FULL DEV SET:')
+		X_dev, D_dev = seqs_to_lmXY(S_dev)
+		mean_loss = my_rnn.compute_mean_loss(X_dev, D_dev)
+		adjusted_loss = adjust_loss(mean_loss, fraction_lost, q)
+		print("Mean loss: {}".format(mean_loss))
+		print("Unadjusted: %.03f" % np.exp(mean_loss))
+		print("Adjusted for missing vocab: %.03f" % np.exp(adjusted_loss))
+
+
+
+	if mode == "train-np":
+		'''
 		starter code for parameter estimation.
 		change this to different values, or use it to get you started with your own testing class
+		
+		python /Users/vesko/GitHub/UoE-nlu/code/rnn.py train-np /Users/vesko/GitHub/UoE-nlu/data 50 2 0.5
+		# train-np ../data 50 2 0.5
+		
 		'''
-        train_size = 25000
-        dev_size = 1000
-        vocab_size = 2000
+		train_size = 25000
+		dev_size = 1000
+		vocab_size = 2000
 
-        hdim = int(sys.argv[3])
-        lookback = int(sys.argv[4])
-        lr = float(sys.argv[5])
+		hdim = int(sys.argv[3])
+		lookback = int(sys.argv[4])
+		lr = float(sys.argv[5])
 
-        # get the data set vocabulary
-        vocab = pd.read_table(
-            data_folder + "/vocab.wiki.txt",
-            header=None,
-            sep="\s+",
-            index_col=0,
-            names=['count', 'freq'],
-        )
-        num_to_word = dict(enumerate(vocab.index[:vocab_size]))
-        word_to_num = invert_dict(num_to_word)
+		# get the data set vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
 
-        # calculate loss vocabulary words due to vocab_size
-        fraction_lost = fraq_loss(vocab, word_to_num, vocab_size)
-        print("Retained %d words from %d (%.02f%% of all tokens)\n" %
-              (vocab_size, len(vocab), 100 * (1 - fraction_lost)))
+		# calculate loss vocabulary words due to vocab_size
+		fraction_lost = fraq_loss(vocab, word_to_num, vocab_size)
+		print("Retained %d words from %d (%.02f%% of all tokens)\n" % (vocab_size, len(vocab), 100*(1-fraction_lost)))
 
-        # load training data
-        sents = load_np_dataset(data_folder + '/wiki-train.txt')
-        S_train = docs_to_indices(sents, word_to_num, 0, 0)
-        X_train, D_train = seqs_to_npXY(S_train)
+		# load training data
+		sents = load_np_dataset(data_folder + '/wiki-train.txt')
+		S_train = docs_to_indices(sents, word_to_num, 0, 0)
+		X_train, D_train = seqs_to_npXY(S_train)
 
-        X_train = X_train[:train_size]
-        Y_train = D_train[:train_size]
+		X_train = X_train[:train_size]
+		Y_train = D_train[:train_size]
 
-        # load development data
-        sents = load_np_dataset(data_folder + '/wiki-dev.txt')
-        S_dev = docs_to_indices(sents, word_to_num, 0, 0)
-        X_dev, D_dev = seqs_to_npXY(S_dev)
+		# load development data
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
 
-        X_dev = X_dev[:dev_size]
-        D_dev = D_dev[:dev_size]
+		X_dev = X_dev[:dev_size]
+		D_dev = D_dev[:dev_size]
 
-        ##########################
-        # --- your code here --- #
-        ##########################
 
-        my_rnn = RNN(vocab_size, hdim, vocab_size)
-        my_rnn.train_np(
-            X_train,
-            D_train,
-            X_dev,
-            D_dev,
-            learning_rate=lr,
-            back_steps=lookback, epochs = 25)
+		##############################
+		# --- student code below --- #
+		##############################
 
-        np.save(data_folder + "/rnn.U.npy", my_rnn.U)
-        np.save(data_folder + "/rnn.V.npy", my_rnn.V)
-        np.save(data_folder + "/rnn.W.npy", my_rnn.W)
-        
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback, epochs=25, log=False)
 
-    if mode == "predict-lm":
+		np.save("./rnn.U (75 hidd, 10 steps, 2 learn_r, 25 epochs).npy", my_rnn.U)
+		np.save("./rnn.V (75 hidd, 10 steps, 2 learn_r, 25 epochs).npy", my_rnn.V)
+		np.save("./rnn.W (75 hidd, 10 steps, 2 learn_r, 25 epochs).npy", my_rnn.W)
 
-        data_folder = sys.argv[2]
-        rnn_folder = sys.argv[3]
 
-        # get saved RNN matrices and setup RNN
-        U, V, W = np.load(rnn_folder + "/rnn.U.npy"), np.load(
-            rnn_folder + "/rnn.V.npy"), np.load(rnn_folder + "/rnn.W.npy")
-        vocab_size = len(V[0])
-        hdim = len(U[0])
+	if mode == "predict-lm":
 
-        dev_size = 1000
+		# python
+		# /Users/vesko/GitHub/UoE-nlu/code/rnn.py predict-lm /Users/vesko/GitHub/UoE-nlu/data /Users/vesko/GitHub/UoE-nlu/Q2
 
-        r = RNN(vocab_size, hdim, vocab_size)
-        r.U = U
-        r.V = V
-        r.W = W
+		data_folder = sys.argv[2]
+		rnn_folder = sys.argv[3]
 
-        # get vocabulary
-        vocab = pd.read_table(
-            data_folder + "/vocab.wiki.txt",
-            header=None,
-            sep="\s+",
-            index_col=0,
-            names=['count', 'freq'],
-        )
-        num_to_word = dict(enumerate(vocab.index[:vocab_size]))
-        word_to_num = invert_dict(num_to_word)
+		# get saved RNN matrices and setup RNN
+		U, V, W = np.load(rnn_folder + "/rnn.U.npy"), np.load(rnn_folder + "/rnn.V.npy"), np.load(
+			rnn_folder + "/rnn.W.npy")
+		vocab_size = len(V[0])
+		hdim = len(U[0])
 
-        # Load the dev set (for tuning hyperparameters)
-        docs = load_lm_np_dataset(data_folder + '/wiki-dev.txt')
-        S_np_dev = docs_to_indices(docs, word_to_num, 1, 0)
-        X_np_dev, D_np_dev = seqs_to_lmnpXY(S_np_dev)
+		dev_size = 1000
 
-        X_np_dev = X_np_dev[:dev_size]
-        D_np_dev = D_np_dev[:dev_size]
+		r = RNN(vocab_size, hdim, vocab_size)
+		r.U = U
+		r.V = V
+		r.W = W
 
-        np_acc = r.compute_acc_lmnp(X_np_dev, D_np_dev)
+		# get vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0,
+							  names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
 
-        print('Number prediction accuracy on dev set:', np_acc)
+		# Load the dev set (for tuning hyperparameters)
+		docs = load_lm_np_dataset(data_folder + '/wiki-dev.txt')
+		S_np_dev = docs_to_indices(docs, word_to_num, 1, 0)
+		X_np_dev, D_np_dev = seqs_to_lmnpXY(S_np_dev)
 
-        # load test data
-        sents = load_lm_np_dataset(data_folder + '/wiki-test.txt')
-        S_np_test = docs_to_indices(sents, word_to_num, 0, 0)
-        X_np_test, D_np_test = seqs_to_lmnpXY(S_np_test)
+		X_np_dev = X_np_dev[:dev_size]
+		D_np_dev = D_np_dev[:dev_size]
 
-        np_acc_test = r.compute_acc_lmnp(X_np_test, D_np_test)
+		np_acc = r.compute_acc_lmnp(X_np_dev, D_np_dev)
 
-        print('Number prediction accuracy on test set:', np_acc_test)
+		print('Number prediction accuracy on dev set:', np_acc)
+
+		# load test data
+		sents = load_lm_np_dataset(data_folder + '/wiki-test.txt')
+		S_np_test = docs_to_indices(sents, word_to_num, 0, 0)
+		X_np_test, D_np_test = seqs_to_lmnpXY(S_np_test)
+
+		np_acc_test = r.compute_acc_lmnp(X_np_test, D_np_test)
+
+		print('Number prediction accuracy on test set:', np_acc_test)
+
+	if mode == "student-direct":
+		""" Train on subject – verb pairs. Evaluate on Q3 dev. """
+
+		train_size = 25000
+		dev_size = 1000
+		vocab_size = 2000
+
+		hdim = int(sys.argv[3])
+		lookback = int(sys.argv[4])
+		lr = float(sys.argv[5])
+
+		# get the data set vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
+
+		# load training data
+		sents = load_np_dataset_direct(data_folder + '/wiki-train.txt')
+		S_train = docs_to_indices(sents, word_to_num, 0, 0)
+		X_train, D_train = seqs_to_npXY(S_train)
+
+		X_train = X_train[:train_size]
+		Y_train = D_train[:train_size]
+
+		# load development data
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
+
+		X_dev = X_dev[:dev_size]
+		D_dev = D_dev[:dev_size]
+
+
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback, log=False, epochs=25)
+
+		np.save(data_folder + "/rnn.U direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy", my_rnn.W)
+
+		print("Saved final learned matrices U, V and W to disk.")
+
+	if mode == "student-difficult":
+		""" Train on difficult examples only – subject and verb are at least 5 words apart. """
+
+		train_size = 25000
+		dev_size = 1000
+		vocab_size = 2000
+
+		hdim = int(sys.argv[3])
+		lookback = int(sys.argv[4])
+		lr = float(sys.argv[5])
+
+		# get the data set vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
+
+		# load training data
+		sents = load_np_dataset_difficult(data_folder + '/wiki-train.txt')
+		print("{} sentences are available for training (fulfill the 'difficult' criteria)".format(len(sents)))
+		S_train = docs_to_indices(sents, word_to_num, 0, 0)
+		X_train, D_train = seqs_to_npXY(S_train)
+
+		if len(sents) > train_size:
+			train_size = len(sents) - 1
+		X_train = X_train[:train_size]
+		Y_train = D_train[:train_size]
+
+		# load development data
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
+
+		X_dev = X_dev[:dev_size]
+		D_dev = D_dev[:dev_size]
+
+
+		my_rnn = RNN(vocab_size, hdim, vocab_size)
+		my_rnn.train_np(X_train, D_train, X_dev, D_dev, learning_rate=lr, back_steps=lookback, log=False, epochs=25)
+
+		np.save(data_folder + "/rnn.U difficult (50 hidd, 10 steps, 1.5 learn_r, 25 epochs, diff 2).npy", my_rnn.U)
+		np.save(data_folder + "/rnn.V difficult (50 hidd, 10 steps, 1.5 learn_r, 25 epochs, diff 2).npy", my_rnn.V)
+		np.save(data_folder + "/rnn.W difficult (50 hidd, 10 steps, 1.5 learn_r, 25 epochs, diff 2).npy", my_rnn.W)
+
+		print("Saved final learned matrices U, V and W to disk.")
+
+	if mode == 'student-direct-predict':
+		U = np.load('../Q4(b)/rnn.U direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy')
+		V = np.load('../Q4(b)/rnn.V direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy')
+		W = np.load('../Q4(b)/rnn.W direct (50 hidd, 2 steps, 1.5 learn_r, 25 epochs).npy')
+		vocab_size = len(V[0])
+		hdim = len(U[0])
+
+		dev_size = 1000
+
+		r = RNN(vocab_size, hdim, vocab_size)
+		r.U = U
+		r.V = V
+		r.W = W
+
+		# get vocabulary
+		vocab = pd.read_table(data_folder + "/vocab.wiki.txt", header=None, sep="\s+", index_col=0, names=['count', 'freq'], )
+		num_to_word = dict(enumerate(vocab.index[:vocab_size]))
+		word_to_num = invert_dict(num_to_word)
+
+
+		sents = load_np_dataset(data_folder + '/wiki-dev.txt')
+		S_dev = docs_to_indices(sents, word_to_num, 0, 0)
+		X_dev, D_dev = seqs_to_npXY(S_dev)
+
+
+		# a_out = []
+		a_hidd = []
+		for i in range(len(X_dev)):
+			y, s = r.predict(X_dev[i])
+			# a_out.append(y[-1])
+			a_hidd.append(s[-2])
+
+		# np.save('activations_output_layer.npy', np.array(a_out))
+		np.save('activations_hidd_layer.npy', np.array(a_hidd))
+		# np.save('targets.npy', D_dev)
+
+
+
+
